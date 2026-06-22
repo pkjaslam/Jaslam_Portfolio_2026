@@ -677,7 +677,7 @@ function AvatarPortrait() {
       >
         {/* portrait — slow parallax zoom */}
         <img
-          src={jaslamHero.url}
+          src={forestMist}
           alt="Jaslam Poolakkal — Forest Intelligence researcher walking through a night canopy"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
