@@ -231,6 +231,7 @@ function BootSplash({ done }: { done: boolean }) {
         playsInline
         preload="auto"
         style={{
+          position: "absolute",
           inset: 0,
           width: "100%",
           height: "100%",
@@ -242,8 +243,8 @@ function BootSplash({ done }: { done: boolean }) {
         }}
       />
 
-      {/* synthesized cinematic entry pad (Web Audio, no asset needed) */}
-      <SplashEntryAudio done={done} />
+      {/* cinematic forest ambience — wind, low pad, sparse bird chirps */}
+      <SplashForestAmbience active={!done} />
 
       {/* atmospheric grade */}
       <span
