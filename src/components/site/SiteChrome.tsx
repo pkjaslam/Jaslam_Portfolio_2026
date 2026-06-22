@@ -47,8 +47,21 @@ export function SiteNav() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // On home, the cinematic page has its own scrolled nav — hide global one to avoid stacking.
-  const visible = onHome ? false : true;
+  // On home, stay invisible until the user begins scrolling so the cinematic
+  // splash/hero entry isn't broken by a top nav. Off-home, always visible.
+  const visible = onHome ? scrolled : true;
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(max > 0 ? Math.min(1, window.scrollY / max) : 0);
+      raf = 0;
+    };
+    const onScroll2 = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    window.addEventListener("scroll", onScroll2, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll2);
+  }, []);
 
   return (
     <>
