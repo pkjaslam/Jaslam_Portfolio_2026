@@ -26,10 +26,10 @@ export const Route = createFileRoute("/api/public/tts")({
           body: JSON.stringify({
             model: "openai/gpt-4o-mini-tts",
             input: text,
-            voice: body.voice || "sage",
-            speed: 0.96,
+            voice: body.voice || "ash",
+            speed: 0.94,
             instructions:
-              "Voice: a calm, warm, lower-register man in his early thirties — soft, intimate, almost a whisper-close mic feel. Tone: thoughtful, grounded, audience-friendly; speaks like a researcher quietly sharing his world with a friend. Pacing: relaxed and unhurried, gentle pauses at commas and full stops; never rushed, never theatrical. Diction: clean, smooth, rounded — no hard consonants, no breathy whisper, no robotic monotone. Mood: cinematic warmth, confidence without performance. Imagine narrating a documentary about a forest at dawn.",
+              "Voice: a calm, warm, lower-register man in his early thirties — soft, intimate, close-mic feel. Tone: thoughtful, grounded, audience-friendly; like a researcher quietly sharing his world with a friend. Pacing: relaxed, unhurried, gentle pauses at commas and full stops. Diction: smooth, rounded, no hard consonants, never theatrical. Mood: cinematic warmth and quiet confidence — narrating a documentary about a forest at dawn.",
             response_format: "mp3",
             stream_format: "audio",
           }),
