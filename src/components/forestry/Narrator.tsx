@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 
 /**
  * Cinematic narration system.
