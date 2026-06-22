@@ -132,18 +132,34 @@ export function CinematicScene({
  * SceneDivider: thin bg-foreground/20 rule that scales-X from the left as the
  * divider passes through the viewport. The elegant cinematic wipe — no curtain.
  * ---------------------------------------------------------------------------- */
-export function SceneDivider({ label }: { label?: string }) {
+export function SceneDivider({
+  label,
+  mood = "forest",
+}: {
+  label?: string;
+  mood?: "forest" | "overlay" | "maps" | "data";
+}) {
   const { ref, p } = useSceneProgress<HTMLDivElement>();
-  // Wipe progresses across p ∈ [0.25, 0.75]
   const wipe = easeOut((p - 0.25) / 0.5);
   const labelOpacity = Math.max(0, Math.min(1, (wipe - 0.15) / 0.55)) * 0.85;
 
+  const moodBg: Record<string, string> = {
+    forest:
+      "radial-gradient(60% 100% at 50% 50%, rgba(95,217,154,0.10), transparent 70%)",
+    overlay:
+      "radial-gradient(60% 100% at 30% 50%, rgba(230,178,102,0.08), transparent 70%), radial-gradient(60% 100% at 70% 50%, rgba(95,217,154,0.06), transparent 70%)",
+    maps:
+      "radial-gradient(80% 100% at 50% 50%, rgba(159,240,192,0.12), transparent 70%)",
+    data:
+      "linear-gradient(90deg, transparent, rgba(95,217,154,0.10), transparent), repeating-linear-gradient(90deg, transparent 0 60px, rgba(95,217,154,0.06) 60px 61px)",
+  };
+
   return (
-    <div
-      ref={ref}
-      aria-hidden
-      className="relative h-[120px] overflow-hidden"
-    >
+    <div ref={ref} aria-hidden className="relative h-[140px] overflow-hidden">
+      <div
+        className="absolute inset-0 transition-opacity duration-500"
+        style={{ background: moodBg[mood], opacity: 0.5 + wipe * 0.5 }}
+      />
       {label && (
         <span
           className="absolute left-[6%] top-1/2 -translate-y-[22px] font-mono-tight text-[10.5px]"
@@ -158,8 +174,15 @@ export function SceneDivider({ label }: { label?: string }) {
         </span>
       )}
       <span
-        className="absolute left-[6%] right-[6%] top-1/2 h-px bg-foreground/20"
+        className="absolute right-[6%] top-1/2 -translate-y-[22px] font-mono-tight text-[9.5px] uppercase"
+        style={{ color: "var(--acc-soft)", opacity: labelOpacity * 0.7, letterSpacing: "0.32em" }}
+      >
+        {mood}
+      </span>
+      <span
+        className="absolute left-[6%] right-[6%] top-1/2 h-px"
         style={{
+          background: "linear-gradient(90deg, transparent, var(--acc), transparent)",
           transform: `scaleX(${wipe.toFixed(4)})`,
           transformOrigin: "left center",
           willChange: "transform",
