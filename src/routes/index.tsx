@@ -898,9 +898,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 function USOutlineMetric() {
   return (
     <div className="relative px-5 pb-5 pt-2">
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
+      <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-4 flex items-center gap-4">
         <div
-          className="flex-1 h-[52px] text-[var(--acc)]"
+          className="flex-1 h-[86px] text-[var(--acc)]"
           style={{
             maskImage: "url(/us-states.svg)",
             WebkitMaskImage: "url(/us-states.svg)",
@@ -911,8 +911,8 @@ function USOutlineMetric() {
             maskPosition: "left center",
             WebkitMaskPosition: "left center",
             background:
-              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 85%, transparent), color-mix(in oklab, var(--acc) 25%, transparent))",
-            filter: "drop-shadow(0 0 4px color-mix(in oklab, var(--acc) 60%, transparent))",
+              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 100%, transparent), color-mix(in oklab, var(--acc) 55%, transparent))",
+            filter: "drop-shadow(0 0 10px color-mix(in oklab, var(--acc) 85%, transparent)) drop-shadow(0 0 22px color-mix(in oklab, var(--acc) 35%, transparent))",
             animation: "usFade 1.6s ease-out .3s both, usPulse 5s ease-in-out 2s infinite",
           }}
           aria-hidden
