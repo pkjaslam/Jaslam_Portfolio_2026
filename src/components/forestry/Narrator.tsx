@@ -179,13 +179,31 @@ export function Narrator() {
   };
 
   // Hero narration once after enabling — wait for the splash to clear.
+  // Also retry on first user gesture in case browser autoplay policy blocked the first attempt.
   useEffect(() => {
     if (!enabled) return;
     const hero = SCRIPTS.find((s) => s.id === "hero")!;
-    if (!playedRef.current.has(hero.id)) {
-      const t = setTimeout(() => play(hero), 3600);
-      return () => clearTimeout(t);
-    }
+    if (playedRef.current.has(hero.id)) return;
+
+    let cancelled = false;
+    const tryPlay = () => { if (!cancelled && !playedRef.current.has(hero.id)) play(hero); };
+
+    const t = setTimeout(tryPlay, 2400);
+
+    // First user gesture unlocks autoplay — retry then.
+    const onGesture = () => { tryPlay(); cleanup(); };
+    const cleanup = () => {
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
+      window.removeEventListener("touchstart", onGesture);
+      window.removeEventListener("scroll", onGesture);
+    };
+    window.addEventListener("pointerdown", onGesture, { once: true });
+    window.addEventListener("keydown", onGesture, { once: true });
+    window.addEventListener("touchstart", onGesture, { once: true });
+    window.addEventListener("scroll", onGesture, { once: true, passive: true });
+
+    return () => { cancelled = true; clearTimeout(t); cleanup(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
