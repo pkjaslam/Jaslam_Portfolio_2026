@@ -47,8 +47,8 @@ export function SiteNav() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // On home, hide until scrolled (preserves cinematic entry). Elsewhere always show.
-  const visible = onHome ? scrolled : true;
+  // On home, the cinematic page has its own scrolled nav — hide global one to avoid stacking.
+  const visible = onHome ? false : true;
 
   return (
     <>

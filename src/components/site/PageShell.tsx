@@ -32,8 +32,8 @@ export function PageShell({
 }: {
   mood?: Mood;
   eyebrow: string;
-  title: string;
-  lede?: string;
+  title: ReactNode;
+  lede?: ReactNode;
   children: ReactNode;
 }) {
   const tex = MOOD_TEXTURE[mood];
