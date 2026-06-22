@@ -105,6 +105,7 @@ const ENABLED_KEY = "narrator:enabled";
 const VOICE = "ash"; // warm, lower-register male
 
 export function Narrator() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [enabled, setEnabled] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
