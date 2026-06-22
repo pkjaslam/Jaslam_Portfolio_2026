@@ -59,8 +59,48 @@ const SCRIPTS: NarrationScript[] = [
   },
 ];
 
+// Per-route narration. Plays once per route per session, immediately on arrival.
+const ROUTE_SCRIPTS: Record<string, NarrationScript> = {
+  "/research": {
+    id: "route-research",
+    selector: "__route__",
+    text: "Research, for me, is about listening to forests with the tools of statistics, machine learning, and remote sensing — and translating what they say into decisions.",
+    subtitle: "Listening to forests with statistics, ML, and remote sensing.",
+  },
+  "/tools": {
+    id: "route-tools",
+    selector: "__route__",
+    text: "These are the tools I build — small instruments that turn raw forest data into clear, defensible decisions on the ground.",
+    subtitle: "Tools that turn raw forest data into clear decisions.",
+  },
+  "/publications": {
+    id: "route-publications",
+    selector: "__route__",
+    text: "Each publication is a question answered carefully — a small, durable contribution to how we understand and manage living forests.",
+    subtitle: "Each publication, a question answered carefully.",
+  },
+  "/impact": {
+    id: "route-impact",
+    selector: "__route__",
+    text: "Impact, in this work, is measured in acres managed, decisions improved, and partners trusting the science behind the recommendations.",
+    subtitle: "Acres, decisions, and trusted partnerships.",
+  },
+  "/about": {
+    id: "route-about",
+    selector: "__route__",
+    text: "A short version of the path that brought me here — from statistics and agriculture to machine learning and forest intelligence.",
+    subtitle: "From statistics to forest intelligence.",
+  },
+  "/contact": {
+    id: "route-contact",
+    selector: "__route__",
+    text: "If something here resonates with your work, reach out. I'm always glad to start a conversation about forests, data, and what they can do together.",
+    subtitle: "Glad to start a conversation.",
+  },
+};
+
 // Use sessionStorage so narration plays once per visit (not silenced forever after first load).
-const PLAYED_KEY = "narrator:played:v4";
+const PLAYED_KEY = "narrator:played:v5";
 const ENABLED_KEY = "narrator:enabled";
 const VOICE = "ash"; // warm, lower-register male
 
