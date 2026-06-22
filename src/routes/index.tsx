@@ -3,12 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { NodeNetworkCanvas } from "@/components/forestry/NodeNetworkCanvas";
 import { CinematicScene, SceneDivider } from "@/components/forestry/CinematicScene";
 import { Narrator } from "@/components/forestry/Narrator";
-import { AmbientAudio } from "@/components/forestry/AmbientAudio";
+import { SplashForestAmbience } from "@/components/forestry/AmbientAudio";
 import { AffiliationsPanel } from "@/components/forestry/AffiliationsPanel";
 import lidarCanopy from "@/assets/lidar-canopy.jpg";
 import topoContours from "@/assets/topo-contours.jpg";
 import forestMist from "@/assets/forest-mist.jpg";
-import jaslamHero from "@/assets/jaslam-hero.png.asset.json";
 import jaslamWalkLoop from "@/assets/jaslam-walk-loop.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
