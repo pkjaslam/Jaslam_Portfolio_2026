@@ -704,104 +704,142 @@ function Particles() {
 
 function TelemetryCard() {
   const MODELS = [
-    "Digital Forestry Engine",
-    "Forest Carrying Capacity Models",
-    "Forest Site Type Intelligence",
-    "Growth & Yield Models",
-    "Site Index Analytics",
+    { n: "01", t: "Digital Forestry Engine" },
+    { n: "02", t: "Forest Carrying Capacity Models" },
+    { n: "03", t: "Forest Site Type Intelligence" },
+    { n: "04", t: "Growth & Yield Models" },
+    { n: "05", t: "Site Index Analytics" },
   ];
+  const SIGNALS = ["LIDAR", "SATELLITE", "FIELD", "AI"];
   return (
-    <div className="glass-strong relative w-full max-w-[360px] p-5 overflow-hidden">
+    <div className="glass-strong relative w-full max-w-[380px] overflow-hidden">
+      {/* slow scan sweep */}
       <div
         aria-hidden
-        className="absolute inset-x-0 h-12 pointer-events-none"
+        className="absolute inset-x-0 h-16 pointer-events-none"
         style={{
           background:
-            "linear-gradient(180deg, transparent, rgba(95,217,154,0.10), transparent)",
-          animation: "scanline 5s linear infinite",
+            "linear-gradient(180deg, transparent, rgba(95,217,154,0.12), transparent)",
+          animation: "scanline 6s linear infinite",
         }}
       />
-      <div className="flex items-center justify-between mb-4">
-        <span className="font-mono-tight text-[10px] text-acc-soft">FOREST&nbsp;SIGNAL</span>
-        <span className="flex items-center gap-1.5 font-mono-tight text-[10px] text-faint">
-          <span className="dot-acc" style={{ width: 6, height: 6, animation: "blink 1.4s infinite" }} />
-          LIVE
+
+      {/* header */}
+      <div className="relative flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2.5">
+          <span className="dot-acc" style={{ width: 7, height: 7, animation: "blink 1.4s infinite" }} />
+          <span className="font-mono-tight text-[10.5px] text-acc-soft" style={{ letterSpacing: "0.26em" }}>
+            FOREST SIGNAL
+          </span>
+        </div>
+        <span className="font-mono-tight text-[9.5px] text-faint" style={{ letterSpacing: "0.26em" }}>
+          v2.6 · LIVE
         </span>
       </div>
 
-      <ul className="space-y-2 mt-1">
-        {MODELS.map((m, i) => (
-          <li
-            key={m}
-            className="flex items-center gap-3 group"
-            style={{ animation: `fadeUp .7s cubic-bezier(.2,.7,.2,1) ${0.15 + i * 0.08}s both` }}
+      {/* models — numbered, monospaced, calm */}
+      <div className="relative px-5 pt-4 pb-3">
+        <div className="font-mono-tight text-[9px] text-faint mb-3" style={{ letterSpacing: "0.32em" }}>
+          ACTIVE MODELS
+        </div>
+        <ul className="space-y-1.5">
+          {MODELS.map((m, i) => (
+            <li
+              key={m.t}
+              className="flex items-center gap-3 group"
+              style={{ animation: `fadeUp .7s cubic-bezier(.2,.7,.2,1) ${0.15 + i * 0.08}s both` }}
+            >
+              <span className="font-mono-tight text-[9.5px] text-acc-soft w-5">{m.n}</span>
+              <span className="flex-1 font-display text-[14px] leading-snug text-[var(--text)]/95">
+                {m.t}
+              </span>
+              <span
+                className="opacity-50 group-hover:opacity-100 transition-opacity"
+                style={{
+                  width: 5, height: 5, borderRadius: 999,
+                  background: "var(--acc)", boxShadow: "0 0 6px var(--acc)",
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* signal source chips */}
+      <div className="relative px-5 pb-4 flex flex-wrap gap-1.5">
+        {SIGNALS.map((s) => (
+          <span
+            key={s}
+            className="font-mono-tight text-[9px] px-2 py-1 rounded-full"
+            style={{
+              color: "var(--acc-soft)",
+              background: "rgba(95,217,154,0.06)",
+              border: "1px solid rgba(95,217,154,0.16)",
+              letterSpacing: "0.22em",
+            }}
           >
-            <span
-              style={{
-                width: 4,
-                height: 4,
-                borderRadius: 999,
-                background: "var(--acc)",
-                boxShadow: "0 0 6px var(--acc)",
-                flex: "0 0 auto",
-                opacity: 0.9,
-              }}
-            />
-            <span className="font-mono-tight text-[11px] uppercase tracking-[0.14em] text-[var(--text)]/90">
-              {m}
-            </span>
-          </li>
+            {s}
+          </span>
         ))}
-      </ul>
-
-
-      <div className="font-mono-tight text-[9.5px] mt-4 text-faint">
-        LIDAR &nbsp;·&nbsp; SATELLITE &nbsp;·&nbsp; FIELD OBSERVATIONS &nbsp;·&nbsp; AI
       </div>
 
-      <div className="h-px my-4 bg-white/10" />
+      <div className="relative h-px mx-5" style={{ background: "linear-gradient(90deg, transparent, rgba(95,217,154,0.35), transparent)" }} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Metric label="PEER-REVIEWED" value="22" />
-        <Metric label="RESEARCH FUNDING" value="$900K" />
-        <Metric label="FUNDED GRANTS" value="04" />
-        <USOutlineMetric />
+      {/* metrics — three across, equal weight */}
+      <div className="relative px-5 py-4 grid grid-cols-3 gap-2.5">
+        <Metric label="PEER REVIEWED" value="22" />
+        <Metric label="FUNDING" value="$900K" />
+        <Metric label="GRANTS" value="04" />
       </div>
+
+      {/* US footprint */}
+      <USOutlineMetric />
     </div>
   );
 }
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-      <div className="font-display text-[24px] leading-none text-[var(--text)]">{value}</div>
-      <div className="font-mono-tight text-[9.5px] mt-2 text-faint">{label}</div>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-center">
+      <div className="font-display text-[26px] leading-none text-[var(--text)]">{value}</div>
+      <div className="font-mono-tight text-[8.5px] mt-1.5 text-faint" style={{ letterSpacing: "0.22em" }}>
+        {label}
+      </div>
     </div>
   );
 }
 
-/* Real contiguous-US silhouette — full panel width so it reads clearly. */
+/* Compact US silhouette footer — anchors the panel without crowding it. */
 function USOutlineMetric() {
   return (
-    <div className="col-span-2 rounded-xl border border-white/5 bg-white/[0.02] p-3 relative overflow-hidden">
-      <div
-        className="w-full h-[90px] flex items-center justify-center text-[var(--acc)]"
-        style={{
-          maskImage: "url(/us-states.svg)",
-          WebkitMaskImage: "url(/us-states.svg)",
-          maskRepeat: "no-repeat",
-          WebkitMaskRepeat: "no-repeat",
-          maskSize: "contain",
-          WebkitMaskSize: "contain",
-          maskPosition: "center",
-          WebkitMaskPosition: "center",
-          background:
-            "radial-gradient(120% 80% at 50% 50%, color-mix(in oklab, var(--acc) 75%, transparent), color-mix(in oklab, var(--acc) 25%, transparent))",
-          filter: "drop-shadow(0 0 4px color-mix(in oklab, var(--acc) 60%, transparent))",
-          animation: "usFade 1.6s ease-out .3s both, usPulse 5s ease-in-out 2s infinite",
-        }}
-        aria-hidden
-      />
-      <div className="font-mono-tight text-[9.5px] mt-2 text-faint">WORKING NATIONALLY</div>
+    <div className="relative px-5 pb-5 pt-2">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
+        <div
+          className="flex-1 h-[52px] text-[var(--acc)]"
+          style={{
+            maskImage: "url(/us-states.svg)",
+            WebkitMaskImage: "url(/us-states.svg)",
+            maskRepeat: "no-repeat",
+            WebkitMaskRepeat: "no-repeat",
+            maskSize: "contain",
+            WebkitMaskSize: "contain",
+            maskPosition: "left center",
+            WebkitMaskPosition: "left center",
+            background:
+              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 85%, transparent), color-mix(in oklab, var(--acc) 25%, transparent))",
+            filter: "drop-shadow(0 0 4px color-mix(in oklab, var(--acc) 60%, transparent))",
+            animation: "usFade 1.6s ease-out .3s both, usPulse 5s ease-in-out 2s infinite",
+          }}
+          aria-hidden
+        />
+        <div className="text-right">
+          <div className="font-mono-tight text-[9.5px] text-acc-soft" style={{ letterSpacing: "0.22em" }}>
+            COVERAGE
+          </div>
+          <div className="font-display text-[15px] text-[var(--text)] leading-tight mt-0.5">
+            Nationwide
+          </div>
+        </div>
+      </div>
       <style>{`
         @keyframes usFade { from { opacity: 0; transform: translateY(2px) } to { opacity: .95; transform: none } }
         @keyframes usPulse { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
