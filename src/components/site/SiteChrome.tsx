@@ -129,6 +129,23 @@ export function SiteNav() {
         >
           MENU
         </button>
+
+        {/* scroll progress rail */}
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: 0,
+            bottom: -1,
+            height: 2,
+            width: "100%",
+            transformOrigin: "left center",
+            transform: `scaleX(${progress})`,
+            background: "linear-gradient(90deg,var(--acc),var(--acc-soft))",
+            boxShadow: "0 0 10px var(--acc)",
+            willChange: "transform",
+          }}
+        />
       </nav>
 
       {/* Mobile sheet */}
