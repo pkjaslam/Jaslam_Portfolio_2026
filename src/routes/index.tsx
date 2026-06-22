@@ -135,51 +135,137 @@ function Portfolio() {
  * fades in/out based on its scroll-band weight.
  */
 function PageAtmosphere({ progress }: { progress: number }) {
-  // weights peak at: forest 0.0, overlay 0.28, maps 0.55, data 0.78, forest 1.0
-  const peaks = [0.0, 0.28, 0.55, 0.78, 1.0];
+  // Five cinematic moods, each peaking at a scroll band.
+  // forest → overlay → maps → data → forest (return)
+  const peaks = [0.0, 0.27, 0.52, 0.78, 1.0];
   const w = peaks.map((c) => {
     const d = Math.abs(progress - c);
-    return Math.max(0, 1 - d / 0.32);
+    // wider band + smoother falloff so transitions feel continuous, not flat black
+    return Math.max(0, 1 - Math.pow(d / 0.36, 1.5));
   });
   const total = w.reduce((a, b) => a + b, 0) || 1;
-  const [wf, wo, wm, wd, wf2] = w.map((x) => x / total);
-  const moods: { bg: string; o: number }[] = [
-    { o: wf, bg: "radial-gradient(60% 50% at 50% 30%, rgba(20,55,38,0.55), transparent 70%), linear-gradient(180deg,#060b08, #0a1410)" },
-    { o: wo, bg: "radial-gradient(70% 60% at 20% 30%, rgba(95,217,154,0.10), transparent 70%), radial-gradient(60% 50% at 80% 70%, rgba(230,178,102,0.06), transparent 70%), linear-gradient(180deg,#070d09,#08120d)" },
-    { o: wm, bg: "linear-gradient(180deg,#06100b,#091812), radial-gradient(80% 60% at 50% 50%, rgba(95,217,154,0.08), transparent 70%)" },
-    { o: wd, bg: "linear-gradient(180deg,#040907,#080f0b), radial-gradient(60% 50% at 80% 20%, rgba(159,240,192,0.06), transparent 70%)" },
-    { o: wf2, bg: "radial-gradient(60% 50% at 50% 70%, rgba(20,55,38,0.55), transparent 70%), linear-gradient(180deg,#060b08, #0a1410)" },
+  const n = w.map((x) => x / total);
+
+  const moods = [
+    // 0 — Night forest, mossy depth, soft fog
+    "radial-gradient(70% 55% at 50% 28%, rgba(34,92,62,0.55), transparent 72%), radial-gradient(50% 40% at 20% 80%, rgba(18,46,32,0.5), transparent 70%), linear-gradient(180deg,#050a07 0%, #0a1612 60%, #06100b 100%)",
+    // 1 — Forest with scientific overlay tint (cool teal cast)
+    "radial-gradient(70% 60% at 20% 30%, rgba(95,217,154,0.16), transparent 72%), radial-gradient(60% 50% at 80% 70%, rgba(230,178,102,0.09), transparent 72%), linear-gradient(180deg,#06100c 0%, #0a1a14 100%)",
+    // 2 — Cartographic — slate-teal with copper sunrise hint
+    "radial-gradient(80% 60% at 70% 30%, rgba(95,217,154,0.16), transparent 70%), radial-gradient(60% 50% at 20% 70%, rgba(72,140,180,0.18), transparent 75%), linear-gradient(180deg,#071612 0%, #0a1f1a 100%)",
+    // 3 — Data — deep ink with phosphor green grid glow
+    "radial-gradient(70% 55% at 50% 50%, rgba(95,217,154,0.18), transparent 70%), linear-gradient(180deg,#03080a 0%, #051410 60%, #03090b 100%)",
+    // 4 — Forest returns, warmer dawn
+    "radial-gradient(60% 50% at 50% 70%, rgba(34,92,62,0.55), transparent 70%), radial-gradient(50% 40% at 80% 20%, rgba(230,178,102,0.10), transparent 70%), linear-gradient(180deg,#060d09 0%, #0a1410 100%)",
   ];
+
   return (
-    <div aria-hidden className="fixed inset-0 pointer-events-none z-[0]">
-      {moods.map((m, i) => (
+    <div aria-hidden className="fixed inset-0 pointer-events-none z-[0] overflow-hidden">
+      {/* base mood crossfade */}
+      {moods.map((bg, i) => (
         <div
           key={i}
-          className="absolute inset-0 transition-opacity duration-700"
-          style={{ background: m.bg, opacity: m.o }}
+          className="absolute inset-0"
+          style={{ background: bg, opacity: n[i], transition: "opacity .9s ease-out" }}
         />
       ))}
-      {/* mood-specific texture layer for maps */}
+
+      {/* forest mist photo — present in forest bands */}
       <div
         className="absolute inset-0 mix-blend-screen"
+        style={{
+          backgroundImage: `url(${forestMist})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: (n[0] + n[4]) * 0.55,
+          transition: "opacity .9s",
+        }}
+      />
+
+      {/* LiDAR canopy ghost — overlay band */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${lidarCanopy})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: n[1] * 0.32,
+          mixBlendMode: "screen",
+          filter: "saturate(0.6) hue-rotate(-10deg)",
+          transition: "opacity .9s",
+        }}
+      />
+
+      {/* Topographic contours — maps band */}
+      <div
+        className="absolute inset-0"
         style={{
           backgroundImage: `url(${topoContours})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: w[2] * 0.18,
-          transition: "opacity .7s",
+          opacity: n[2] * 0.42,
+          mixBlendMode: "screen",
+          transition: "opacity .9s",
         }}
       />
-      {/* data grid */}
+
+      {/* Coordinate ticks — maps & data */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "repeating-linear-gradient(90deg, transparent 0 84px, rgba(95,217,154,0.05) 84px 85px), repeating-linear-gradient(0deg, transparent 0 84px, rgba(95,217,154,0.05) 84px 85px)",
-          opacity: w[3] * 0.6,
-          transition: "opacity .7s",
+            "repeating-linear-gradient(90deg, transparent 0 119px, rgba(95,217,154,0.08) 119px 120px), repeating-linear-gradient(0deg, transparent 0 119px, rgba(95,217,154,0.08) 119px 120px)",
+          opacity: (n[2] + n[3]) * 0.55,
+          transition: "opacity .9s",
         }}
       />
+
+      {/* Phosphor data grid — data band */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "repeating-linear-gradient(90deg, transparent 0 39px, rgba(95,217,154,0.07) 39px 40px), repeating-linear-gradient(0deg, transparent 0 39px, rgba(95,217,154,0.07) 39px 40px)",
+          opacity: n[3] * 0.7,
+          mixBlendMode: "screen",
+          transition: "opacity .9s",
+        }}
+      />
+
+      {/* drifting point-cloud motes — overlay/maps/data */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(1px 1px at 12% 18%, rgba(159,240,192,0.6), transparent 60%), radial-gradient(1.2px 1.2px at 78% 32%, rgba(159,240,192,0.45), transparent 60%), radial-gradient(1px 1px at 34% 72%, rgba(159,240,192,0.55), transparent 60%), radial-gradient(1.4px 1.4px at 62% 84%, rgba(95,217,154,0.5), transparent 60%), radial-gradient(1px 1px at 88% 58%, rgba(159,240,192,0.5), transparent 60%), radial-gradient(1px 1px at 8% 60%, rgba(159,240,192,0.5), transparent 60%)",
+          opacity: (n[1] + n[2] + n[3]) * 0.7,
+          animation: "atmosDrift 24s linear infinite",
+          transition: "opacity .9s",
+        }}
+      />
+
+      {/* subtle film vignette + grain — always-on cohesion */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(140% 100% at 50% 50%, transparent 55%, rgba(3,8,6,0.45) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-[0.18] mix-blend-overlay"
+        style={{
+          background:
+            "repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 3px)",
+        }}
+      />
+
+      <style>{`
+        @keyframes atmosDrift {
+          0% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+          100% { background-position: 40px -20px, -30px 25px, 25px 30px, -20px -25px, 30px 20px, -25px -30px; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -812,9 +898,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 function USOutlineMetric() {
   return (
     <div className="relative px-5 pb-5 pt-2">
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
+      <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-4 flex items-center gap-4">
         <div
-          className="flex-1 h-[52px] text-[var(--acc)]"
+          className="flex-1 h-[86px] text-[var(--acc)]"
           style={{
             maskImage: "url(/us-states.svg)",
             WebkitMaskImage: "url(/us-states.svg)",
@@ -825,8 +911,8 @@ function USOutlineMetric() {
             maskPosition: "left center",
             WebkitMaskPosition: "left center",
             background:
-              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 85%, transparent), color-mix(in oklab, var(--acc) 25%, transparent))",
-            filter: "drop-shadow(0 0 4px color-mix(in oklab, var(--acc) 60%, transparent))",
+              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 100%, transparent), color-mix(in oklab, var(--acc) 55%, transparent))",
+            filter: "drop-shadow(0 0 10px color-mix(in oklab, var(--acc) 85%, transparent)) drop-shadow(0 0 22px color-mix(in oklab, var(--acc) 35%, transparent))",
             animation: "usFade 1.6s ease-out .3s both, usPulse 5s ease-in-out 2s infinite",
           }}
           aria-hidden
