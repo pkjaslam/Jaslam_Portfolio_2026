@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 
 /**
  * Cinematic narration system.
@@ -58,12 +59,53 @@ const SCRIPTS: NarrationScript[] = [
   },
 ];
 
+// Per-route narration. Plays once per route per session, immediately on arrival.
+const ROUTE_SCRIPTS: Record<string, NarrationScript> = {
+  "/research": {
+    id: "route-research",
+    selector: "__route__",
+    text: "Research, for me, is about listening to forests with the tools of statistics, machine learning, and remote sensing — and translating what they say into decisions.",
+    subtitle: "Listening to forests with statistics, ML, and remote sensing.",
+  },
+  "/tools": {
+    id: "route-tools",
+    selector: "__route__",
+    text: "These are the tools I build — small instruments that turn raw forest data into clear, defensible decisions on the ground.",
+    subtitle: "Tools that turn raw forest data into clear decisions.",
+  },
+  "/publications": {
+    id: "route-publications",
+    selector: "__route__",
+    text: "Each publication is a question answered carefully — a small, durable contribution to how we understand and manage living forests.",
+    subtitle: "Each publication, a question answered carefully.",
+  },
+  "/impact": {
+    id: "route-impact",
+    selector: "__route__",
+    text: "Impact, in this work, is measured in acres managed, decisions improved, and partners trusting the science behind the recommendations.",
+    subtitle: "Acres, decisions, and trusted partnerships.",
+  },
+  "/about": {
+    id: "route-about",
+    selector: "__route__",
+    text: "A short version of the path that brought me here — from statistics and agriculture to machine learning and forest intelligence.",
+    subtitle: "From statistics to forest intelligence.",
+  },
+  "/contact": {
+    id: "route-contact",
+    selector: "__route__",
+    text: "If something here resonates with your work, reach out. I'm always glad to start a conversation about forests, data, and what they can do together.",
+    subtitle: "Glad to start a conversation.",
+  },
+};
+
 // Use sessionStorage so narration plays once per visit (not silenced forever after first load).
-const PLAYED_KEY = "narrator:played:v4";
+const PLAYED_KEY = "narrator:played:v5";
 const ENABLED_KEY = "narrator:enabled";
 const VOICE = "ash"; // warm, lower-register male
 
 export function Narrator() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [enabled, setEnabled] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -104,11 +146,25 @@ export function Narrator() {
     return p;
   };
 
-  // Prefetch every clip in PARALLEL so any section is ready instantly.
+  // Prefetch every clip in PARALLEL so any section/route is ready instantly.
   useEffect(() => {
     if (!enabled) return;
     SCRIPTS.forEach((s) => { fetchClip(s).catch(() => {}); });
+    Object.values(ROUTE_SCRIPTS).forEach((s) => { fetchClip(s).catch(() => {}); });
   }, [enabled]);
+
+  // Per-route narration: play on arrival (and when pathname changes).
+  useEffect(() => {
+    if (!enabled) return;
+    const script = ROUTE_SCRIPTS[pathname];
+    if (!script) return;
+    if (playedRef.current.has(script.id)) return;
+    // Small delay so route transition settles.
+    const t = setTimeout(() => { if (!playedRef.current.has(script.id)) play(script); }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, pathname]);
+
 
   const stopCurrent = (immediate = false) => {
     const a = audioRef.current;
