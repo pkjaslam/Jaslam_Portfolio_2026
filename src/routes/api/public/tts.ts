@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/tts")({
         }
         const text = (body.text || "").trim();
         if (!text) return new Response("Missing text", { status: 400 });
-        if (text.length > 1200) return new Response("Text too long", { status: 400 });
+        if (text.length > 1600) return new Response("Text too long", { status: 400 });
 
         const upstream = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
           method: "POST",
@@ -26,10 +26,10 @@ export const Route = createFileRoute("/api/public/tts")({
           body: JSON.stringify({
             model: "openai/gpt-4o-mini-tts",
             input: text,
-            voice: body.voice || "ash",
-            speed: 1.08,
+            voice: body.voice || "sage",
+            speed: 0.96,
             instructions:
-              "Voice: a calm, warm, intelligent man in his early thirties with a soft, neutral Indian-English accent — articulate, gentle, and grounded. Tone: thoughtful and personal, like a researcher quietly sharing his world. Slightly lower register; never theatrical. Pacing: natural and conversational, flowing smoothly with light pauses at commas, never dragging. Diction: clean, crisp consonants and steady cadence. Mood: cinematic but human — confidence without performance, warmth without sweetness. Avoid robotic monotone, breathy whispers, and over-dramatic narration.",
+              "Voice: a calm, warm, lower-register man in his early thirties — soft, intimate, almost a whisper-close mic feel. Tone: thoughtful, grounded, audience-friendly; speaks like a researcher quietly sharing his world with a friend. Pacing: relaxed and unhurried, gentle pauses at commas and full stops; never rushed, never theatrical. Diction: clean, smooth, rounded — no hard consonants, no breathy whisper, no robotic monotone. Mood: cinematic warmth, confidence without performance. Imagine narrating a documentary about a forest at dawn.",
             response_format: "mp3",
             stream_format: "audio",
           }),

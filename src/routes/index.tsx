@@ -3,12 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { NodeNetworkCanvas } from "@/components/forestry/NodeNetworkCanvas";
 import { CinematicScene, SceneDivider } from "@/components/forestry/CinematicScene";
 import { Narrator } from "@/components/forestry/Narrator";
-import { AmbientAudio } from "@/components/forestry/AmbientAudio";
+import { SplashForestAmbience } from "@/components/forestry/AmbientAudio";
 import { AffiliationsPanel } from "@/components/forestry/AffiliationsPanel";
 import lidarCanopy from "@/assets/lidar-canopy.jpg";
 import topoContours from "@/assets/topo-contours.jpg";
 import forestMist from "@/assets/forest-mist.jpg";
-import jaslamHero from "@/assets/jaslam-hero.png.asset.json";
 import jaslamWalkLoop from "@/assets/jaslam-walk-loop.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
@@ -88,44 +87,99 @@ function Portfolio() {
 
   return (
     <div className="relative min-h-screen text-[var(--text)]">
+      <PageAtmosphere progress={progress} />
       <BootSplash done={booted} />
       <TopNav scrolled={scrolled} progress={progress} goto={goto} />
       <Hero goto={goto} />
-      <SceneDivider label="01 / APPROACH" />
+      <SceneDivider label="01 / APPROACH" mood="forest" />
       <CinematicScene camera="settle" intensity={1}>
         <Approach />
       </CinematicScene>
-      <SceneDivider label="02 / EXPERIENCE" />
+      <SceneDivider label="02 / EXPERIENCE" mood="overlay" />
       <CinematicScene camera="rise" intensity={1}>
         <Experience />
       </CinematicScene>
-      <SceneDivider label="03 / FUNDING" />
+      <SceneDivider label="03 / FUNDING" mood="maps" />
       <CinematicScene camera="drift" intensity={1}>
         <Grants />
       </CinematicScene>
-      <SceneDivider label="04 / EDUCATION" />
+      <SceneDivider label="04 / EDUCATION" mood="data" />
       <CinematicScene camera="settle" intensity={0.8}>
         <Education />
       </CinematicScene>
-      <SceneDivider label="05 / PUBLICATIONS" />
+      <SceneDivider label="05 / PUBLICATIONS" mood="data" />
       <CinematicScene camera="rise" intensity={0.9}>
         <Publications />
       </CinematicScene>
-      <SceneDivider label="06 / HONORS" />
+      <SceneDivider label="06 / HONORS" mood="overlay" />
       <CinematicScene camera="drift" intensity={0.8}>
         <Awards />
       </CinematicScene>
-      <SceneDivider label="07 / CREDENTIALS" />
+      <SceneDivider label="07 / CREDENTIALS" mood="overlay" />
       <CinematicScene camera="settle" intensity={0.7}>
         <Certifications />
       </CinematicScene>
-      <SceneDivider label="08 / CONTACT" />
+      <SceneDivider label="08 / CONTACT" mood="forest" />
       <CinematicScene camera="zoom" intensity={1}>
         <Contact />
       </CinematicScene>
       <SiteFooter />
       <Narrator />
-      <AmbientAudio />
+    </div>
+  );
+}
+
+/* ---------------- Page atmosphere ----------------
+ * A single fixed background that morphs as you scroll: forest → overlays →
+ * maps → data → back to forest. Each "mood" is a stacked gradient layer that
+ * fades in/out based on its scroll-band weight.
+ */
+function PageAtmosphere({ progress }: { progress: number }) {
+  // weights peak at: forest 0.0, overlay 0.28, maps 0.55, data 0.78, forest 1.0
+  const peaks = [0.0, 0.28, 0.55, 0.78, 1.0];
+  const w = peaks.map((c) => {
+    const d = Math.abs(progress - c);
+    return Math.max(0, 1 - d / 0.32);
+  });
+  const total = w.reduce((a, b) => a + b, 0) || 1;
+  const [wf, wo, wm, wd, wf2] = w.map((x) => x / total);
+  const moods: { bg: string; o: number }[] = [
+    { o: wf, bg: "radial-gradient(60% 50% at 50% 30%, rgba(20,55,38,0.55), transparent 70%), linear-gradient(180deg,#060b08, #0a1410)" },
+    { o: wo, bg: "radial-gradient(70% 60% at 20% 30%, rgba(95,217,154,0.10), transparent 70%), radial-gradient(60% 50% at 80% 70%, rgba(230,178,102,0.06), transparent 70%), linear-gradient(180deg,#070d09,#08120d)" },
+    { o: wm, bg: "linear-gradient(180deg,#06100b,#091812), radial-gradient(80% 60% at 50% 50%, rgba(95,217,154,0.08), transparent 70%)" },
+    { o: wd, bg: "linear-gradient(180deg,#040907,#080f0b), radial-gradient(60% 50% at 80% 20%, rgba(159,240,192,0.06), transparent 70%)" },
+    { o: wf2, bg: "radial-gradient(60% 50% at 50% 70%, rgba(20,55,38,0.55), transparent 70%), linear-gradient(180deg,#060b08, #0a1410)" },
+  ];
+  return (
+    <div aria-hidden className="fixed inset-0 pointer-events-none z-[0]">
+      {moods.map((m, i) => (
+        <div
+          key={i}
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{ background: m.bg, opacity: m.o }}
+        />
+      ))}
+      {/* mood-specific texture layer for maps */}
+      <div
+        className="absolute inset-0 mix-blend-screen"
+        style={{
+          backgroundImage: `url(${topoContours})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: w[2] * 0.18,
+          transition: "opacity .7s",
+        }}
+      />
+      {/* data grid */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "repeating-linear-gradient(90deg, transparent 0 84px, rgba(95,217,154,0.05) 84px 85px), repeating-linear-gradient(0deg, transparent 0 84px, rgba(95,217,154,0.05) 84px 85px)",
+          opacity: w[3] * 0.6,
+          transition: "opacity .7s",
+        }}
+      />
     </div>
   );
 }
@@ -176,7 +230,6 @@ function BootSplash({ done }: { done: boolean }) {
         loop
         playsInline
         preload="auto"
-        poster={jaslamHero.url}
         style={{
           position: "absolute",
           inset: 0,
@@ -190,8 +243,8 @@ function BootSplash({ done }: { done: boolean }) {
         }}
       />
 
-      {/* synthesized cinematic entry pad (Web Audio, no asset needed) */}
-      <SplashEntryAudio done={done} />
+      {/* cinematic forest ambience — wind, low pad, sparse bird chirps */}
+      <SplashForestAmbience active={!done} />
 
       {/* atmospheric grade */}
       <span
@@ -258,132 +311,6 @@ function BootSplash({ done }: { done: boolean }) {
       </div>
     </div>
   );
-}
-
-/* ---------------- Cinematic entry pad (synthesized) ----------------
- * Warm Dmin9 pad with soft sub, gentle stereo motion and a low-pass
- * filter sweep. Starts the instant the splash mounts; if the browser
- * blocks autoplay, it resumes on the very first user gesture (move /
- * touch / scroll / key). No external asset needed.
- */
-function SplashEntryAudio({ done }: { done: boolean }) {
-  useEffect(() => {
-    if (done) return;
-    if (typeof window === "undefined") return;
-
-    let ctx: AudioContext | null = null;
-    let stopped = false;
-    let started = false;
-    const oscs: OscillatorNode[] = [];
-
-    const begin = () => {
-      if (stopped || started) return;
-      started = true;
-      try {
-        const AC =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext;
-        ctx = new AC();
-        if (ctx.state === "suspended") ctx.resume().catch(() => {});
-
-        const master = ctx.createGain();
-        master.gain.value = 0;
-
-        // gentle low-pass that opens up — adds the "swell into focus" feel
-        const filter = ctx.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.value = 380;
-        filter.Q.value = 0.7;
-
-        // subtle stereo widening via simple delay
-        const splitter = ctx.createChannelMerger(2);
-        const dry = ctx.createGain();
-        dry.gain.value = 0.85;
-        const wet = ctx.createDelay();
-        wet.delayTime.value = 0.018;
-
-        master.connect(filter);
-        filter.connect(dry).connect(splitter, 0, 0);
-        filter.connect(wet).connect(splitter, 0, 1);
-        splitter.connect(ctx.destination);
-
-        const now = ctx.currentTime;
-
-        // D minor 9 voicing — warm + open:  D2 A2 F3 C4 E4
-        const voices: Array<{ f: number; type: OscillatorType; level: number }> = [
-          { f: 73.42, type: "sine",     level: 0.34 }, // sub
-          { f: 110.0, type: "sine",     level: 0.22 },
-          { f: 174.61, type: "triangle", level: 0.16 },
-          { f: 261.63, type: "triangle", level: 0.11 },
-          { f: 329.63, type: "sine",     level: 0.085 },
-        ];
-
-        voices.forEach((v, i) => {
-          // two slightly detuned oscillators per voice for chorus warmth
-          [-6, +6].forEach((cents) => {
-            const o = ctx!.createOscillator();
-            o.type = v.type;
-            o.frequency.value = v.f;
-            o.detune.value = cents;
-
-            const g = ctx!.createGain();
-            g.gain.value = 0;
-            o.connect(g).connect(master);
-
-            // very slow vibrato for organic motion
-            const lfo = ctx!.createOscillator();
-            const lfoGain = ctx!.createGain();
-            lfo.frequency.value = 0.07 + i * 0.03;
-            lfoGain.gain.value = 1.4;
-            lfo.connect(lfoGain).connect(o.detune);
-
-            const startT = now + i * 0.05;
-            o.start(startT);
-            lfo.start(startT);
-            // smooth attack, gentle sustain, long release
-            g.gain.setValueAtTime(0, startT);
-            g.gain.linearRampToValueAtTime(v.level / 2, startT + 0.9);
-            g.gain.linearRampToValueAtTime(v.level / 2.4, startT + 3.0);
-            g.gain.linearRampToValueAtTime(0.0, startT + 5.4);
-            oscs.push(o, lfo);
-          });
-        });
-
-        // master swell + filter opens up
-        master.gain.setValueAtTime(0, now);
-        master.gain.linearRampToValueAtTime(0.55, now + 1.0);
-        master.gain.linearRampToValueAtTime(0.42, now + 3.0);
-        master.gain.linearRampToValueAtTime(0.0, now + 5.4);
-        filter.frequency.linearRampToValueAtTime(2400, now + 2.4);
-        filter.frequency.linearRampToValueAtTime(900, now + 5.0);
-
-        master.connect(ctx.destination); // also direct, in case stereo path is empty
-      } catch {
-        /* audio blocked */
-      }
-    };
-
-    // try immediately…
-    begin();
-    // …and also resume on the very first gesture if autoplay was blocked
-    const events = ["pointerdown", "pointermove", "touchstart", "keydown", "scroll", "wheel"];
-    const onGesture = () => {
-      begin();
-      events.forEach((e) => window.removeEventListener(e, onGesture));
-    };
-    events.forEach((e) =>
-      window.addEventListener(e, onGesture, { passive: true, once: false })
-    );
-
-    return () => {
-      stopped = true;
-      events.forEach((e) => window.removeEventListener(e, onGesture));
-      try { oscs.forEach((o) => o.stop()); } catch { /* noop */ }
-      if (ctx) { try { ctx.close(); } catch { /* noop */ } }
-    };
-  }, [done]);
-  return null;
 }
 
 /* ---------------- Sticky nav ---------------- */
@@ -624,7 +551,7 @@ function AvatarPortrait() {
       >
         {/* portrait — slow parallax zoom */}
         <img
-          src={jaslamHero.url}
+          src={forestMist}
           alt="Jaslam Poolakkal — Forest Intelligence researcher walking through a night canopy"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
@@ -777,104 +704,142 @@ function Particles() {
 
 function TelemetryCard() {
   const MODELS = [
-    "Digital Forestry Engine",
-    "Forest Carrying Capacity Models",
-    "Forest Site Type Intelligence",
-    "Growth & Yield Models",
-    "Site Index Analytics",
+    { n: "01", t: "Digital Forestry Engine" },
+    { n: "02", t: "Forest Carrying Capacity Models" },
+    { n: "03", t: "Forest Site Type Intelligence" },
+    { n: "04", t: "Growth & Yield Models" },
+    { n: "05", t: "Site Index Analytics" },
   ];
+  const SIGNALS = ["LIDAR", "SATELLITE", "FIELD", "AI"];
   return (
-    <div className="glass-strong relative w-full max-w-[360px] p-5 overflow-hidden">
+    <div className="glass-strong relative w-full max-w-[380px] overflow-hidden">
+      {/* slow scan sweep */}
       <div
         aria-hidden
-        className="absolute inset-x-0 h-12 pointer-events-none"
+        className="absolute inset-x-0 h-16 pointer-events-none"
         style={{
           background:
-            "linear-gradient(180deg, transparent, rgba(95,217,154,0.10), transparent)",
-          animation: "scanline 5s linear infinite",
+            "linear-gradient(180deg, transparent, rgba(95,217,154,0.12), transparent)",
+          animation: "scanline 6s linear infinite",
         }}
       />
-      <div className="flex items-center justify-between mb-4">
-        <span className="font-mono-tight text-[10px] text-acc-soft">FOREST&nbsp;SIGNAL</span>
-        <span className="flex items-center gap-1.5 font-mono-tight text-[10px] text-faint">
-          <span className="dot-acc" style={{ width: 6, height: 6, animation: "blink 1.4s infinite" }} />
-          LIVE
+
+      {/* header */}
+      <div className="relative flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2.5">
+          <span className="dot-acc" style={{ width: 7, height: 7, animation: "blink 1.4s infinite" }} />
+          <span className="font-mono-tight text-[10.5px] text-acc-soft" style={{ letterSpacing: "0.26em" }}>
+            FOREST SIGNAL
+          </span>
+        </div>
+        <span className="font-mono-tight text-[9.5px] text-faint" style={{ letterSpacing: "0.26em" }}>
+          v2.6 · LIVE
         </span>
       </div>
 
-      <ul className="space-y-2 mt-1">
-        {MODELS.map((m, i) => (
-          <li
-            key={m}
-            className="flex items-center gap-3 group"
-            style={{ animation: `fadeUp .7s cubic-bezier(.2,.7,.2,1) ${0.15 + i * 0.08}s both` }}
+      {/* models — numbered, monospaced, calm */}
+      <div className="relative px-5 pt-4 pb-3">
+        <div className="font-mono-tight text-[9px] text-faint mb-3" style={{ letterSpacing: "0.32em" }}>
+          ACTIVE MODELS
+        </div>
+        <ul className="space-y-1.5">
+          {MODELS.map((m, i) => (
+            <li
+              key={m.t}
+              className="flex items-center gap-3 group"
+              style={{ animation: `fadeUp .7s cubic-bezier(.2,.7,.2,1) ${0.15 + i * 0.08}s both` }}
+            >
+              <span className="font-mono-tight text-[9.5px] text-acc-soft w-5">{m.n}</span>
+              <span className="flex-1 font-display text-[14px] leading-snug text-[var(--text)]/95">
+                {m.t}
+              </span>
+              <span
+                className="opacity-50 group-hover:opacity-100 transition-opacity"
+                style={{
+                  width: 5, height: 5, borderRadius: 999,
+                  background: "var(--acc)", boxShadow: "0 0 6px var(--acc)",
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* signal source chips */}
+      <div className="relative px-5 pb-4 flex flex-wrap gap-1.5">
+        {SIGNALS.map((s) => (
+          <span
+            key={s}
+            className="font-mono-tight text-[9px] px-2 py-1 rounded-full"
+            style={{
+              color: "var(--acc-soft)",
+              background: "rgba(95,217,154,0.06)",
+              border: "1px solid rgba(95,217,154,0.16)",
+              letterSpacing: "0.22em",
+            }}
           >
-            <span
-              style={{
-                width: 4,
-                height: 4,
-                borderRadius: 999,
-                background: "var(--acc)",
-                boxShadow: "0 0 6px var(--acc)",
-                flex: "0 0 auto",
-                opacity: 0.9,
-              }}
-            />
-            <span className="font-mono-tight text-[11px] uppercase tracking-[0.14em] text-[var(--text)]/90">
-              {m}
-            </span>
-          </li>
+            {s}
+          </span>
         ))}
-      </ul>
-
-
-      <div className="font-mono-tight text-[9.5px] mt-4 text-faint">
-        LIDAR &nbsp;·&nbsp; SATELLITE &nbsp;·&nbsp; FIELD OBSERVATIONS &nbsp;·&nbsp; AI
       </div>
 
-      <div className="h-px my-4 bg-white/10" />
+      <div className="relative h-px mx-5" style={{ background: "linear-gradient(90deg, transparent, rgba(95,217,154,0.35), transparent)" }} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Metric label="PEER-REVIEWED" value="22" />
-        <Metric label="RESEARCH FUNDING" value="$900K" />
-        <Metric label="FUNDED GRANTS" value="04" />
-        <USOutlineMetric />
+      {/* metrics — three across, equal weight */}
+      <div className="relative px-5 py-4 grid grid-cols-3 gap-2.5">
+        <Metric label="PEER REVIEWED" value="22" />
+        <Metric label="FUNDING" value="$900K" />
+        <Metric label="GRANTS" value="04" />
       </div>
+
+      {/* US footprint */}
+      <USOutlineMetric />
     </div>
   );
 }
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-      <div className="font-display text-[24px] leading-none text-[var(--text)]">{value}</div>
-      <div className="font-mono-tight text-[9.5px] mt-2 text-faint">{label}</div>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-center">
+      <div className="font-display text-[26px] leading-none text-[var(--text)]">{value}</div>
+      <div className="font-mono-tight text-[8.5px] mt-1.5 text-faint" style={{ letterSpacing: "0.22em" }}>
+        {label}
+      </div>
     </div>
   );
 }
 
-/* Real contiguous-US silhouette — full panel width so it reads clearly. */
+/* Compact US silhouette footer — anchors the panel without crowding it. */
 function USOutlineMetric() {
   return (
-    <div className="col-span-2 rounded-xl border border-white/5 bg-white/[0.02] p-3 relative overflow-hidden">
-      <div
-        className="w-full h-[90px] flex items-center justify-center text-[var(--acc)]"
-        style={{
-          maskImage: "url(/us-states.svg)",
-          WebkitMaskImage: "url(/us-states.svg)",
-          maskRepeat: "no-repeat",
-          WebkitMaskRepeat: "no-repeat",
-          maskSize: "contain",
-          WebkitMaskSize: "contain",
-          maskPosition: "center",
-          WebkitMaskPosition: "center",
-          background:
-            "radial-gradient(120% 80% at 50% 50%, color-mix(in oklab, var(--acc) 75%, transparent), color-mix(in oklab, var(--acc) 25%, transparent))",
-          filter: "drop-shadow(0 0 4px color-mix(in oklab, var(--acc) 60%, transparent))",
-          animation: "usFade 1.6s ease-out .3s both, usPulse 5s ease-in-out 2s infinite",
-        }}
-        aria-hidden
-      />
-      <div className="font-mono-tight text-[9.5px] mt-2 text-faint">WORKING NATIONALLY</div>
+    <div className="relative px-5 pb-5 pt-2">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
+        <div
+          className="flex-1 h-[52px] text-[var(--acc)]"
+          style={{
+            maskImage: "url(/us-states.svg)",
+            WebkitMaskImage: "url(/us-states.svg)",
+            maskRepeat: "no-repeat",
+            WebkitMaskRepeat: "no-repeat",
+            maskSize: "contain",
+            WebkitMaskSize: "contain",
+            maskPosition: "left center",
+            WebkitMaskPosition: "left center",
+            background:
+              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 85%, transparent), color-mix(in oklab, var(--acc) 25%, transparent))",
+            filter: "drop-shadow(0 0 4px color-mix(in oklab, var(--acc) 60%, transparent))",
+            animation: "usFade 1.6s ease-out .3s both, usPulse 5s ease-in-out 2s infinite",
+          }}
+          aria-hidden
+        />
+        <div className="text-right">
+          <div className="font-mono-tight text-[9.5px] text-acc-soft" style={{ letterSpacing: "0.22em" }}>
+            COVERAGE
+          </div>
+          <div className="font-display text-[15px] text-[var(--text)] leading-tight mt-0.5">
+            Nationwide
+          </div>
+        </div>
+      </div>
       <style>{`
         @keyframes usFade { from { opacity: 0; transform: translateY(2px) } to { opacity: .95; transform: none } }
         @keyframes usPulse { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
