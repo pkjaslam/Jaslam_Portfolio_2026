@@ -230,10 +230,7 @@ function BootSplash({ done }: { done: boolean }) {
         loop
         playsInline
         preload="auto"
-        style={{ /* poster removed; first frame fills */ }}
-        // eslint-disable-next-line
         style={{
-          position: "absolute",
           inset: 0,
           width: "100%",
           height: "100%",
