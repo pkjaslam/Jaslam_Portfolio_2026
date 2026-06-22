@@ -160,7 +160,7 @@ export function Narrator() {
       audio.volume = 0;
       audio.onended = () => {
         playedRef.current.add(script.id);
-        try { localStorage.setItem(PLAYED_KEY, JSON.stringify([...playedRef.current])); } catch { /* noop */ }
+        try { sessionStorage.setItem(PLAYED_KEY, JSON.stringify([...playedRef.current])); } catch { /* noop */ }
         currentRef.current = null;
         setActiveId(null);
       };
