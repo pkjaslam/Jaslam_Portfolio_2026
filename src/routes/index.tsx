@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { NodeNetworkCanvas } from "@/components/forestry/NodeNetworkCanvas";
 import { CinematicScene, SceneDivider } from "@/components/forestry/CinematicScene";
-import { Narrator } from "@/components/forestry/Narrator";
+
 import { SplashForestAmbience } from "@/components/forestry/AmbientAudio";
 import { AffiliationsPanel } from "@/components/forestry/AffiliationsPanel";
 import lidarCanopy from "@/assets/lidar-canopy.jpg";
