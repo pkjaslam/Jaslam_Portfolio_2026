@@ -894,36 +894,53 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-/* Compact US silhouette footer — anchors the panel without crowding it. */
+/* Full-bleed US silhouette footer — map fills card width, no wasted space. */
 function USOutlineMetric() {
   return (
     <div className="relative px-5 pb-5 pt-2">
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 py-4 flex items-center gap-4">
+      <div className="relative rounded-xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+        {/* Header row */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <div className="font-mono-tight text-[9.5px] text-acc-soft" style={{ letterSpacing: "0.22em" }}>
+            COVERAGE · CONUS
+          </div>
+          <div className="font-display text-[13px] text-[var(--text)] leading-none">
+            Nationwide
+          </div>
+        </div>
+
+        {/* Map — fills full card width */}
         <div
-          className="flex-1 h-[86px] text-[var(--acc)]"
+          className="relative w-full text-[var(--acc)]"
           style={{
+            aspectRatio: "1000 / 259",
             maskImage: "url(/us-states.svg)",
             WebkitMaskImage: "url(/us-states.svg)",
             maskRepeat: "no-repeat",
             WebkitMaskRepeat: "no-repeat",
-            maskSize: "contain",
-            WebkitMaskSize: "contain",
-            maskPosition: "left center",
-            WebkitMaskPosition: "left center",
+            maskSize: "100% 100%",
+            WebkitMaskSize: "100% 100%",
+            maskPosition: "center",
+            WebkitMaskPosition: "center",
             background:
-              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 100%, transparent), color-mix(in oklab, var(--acc) 55%, transparent))",
-            filter: "drop-shadow(0 0 10px color-mix(in oklab, var(--acc) 85%, transparent)) drop-shadow(0 0 22px color-mix(in oklab, var(--acc) 35%, transparent))",
+              "linear-gradient(90deg, color-mix(in oklab, var(--acc) 100%, transparent), color-mix(in oklab, var(--acc) 60%, transparent))",
+            filter:
+              "drop-shadow(0 0 10px color-mix(in oklab, var(--acc) 85%, transparent)) drop-shadow(0 0 22px color-mix(in oklab, var(--acc) 35%, transparent))",
             animation: "usFade 1.6s ease-out .3s both, usPulse 5s ease-in-out 2s infinite",
           }}
           aria-hidden
         />
-        <div className="text-right">
-          <div className="font-mono-tight text-[9.5px] text-acc-soft" style={{ letterSpacing: "0.22em" }}>
-            COVERAGE
-          </div>
-          <div className="font-display text-[15px] text-[var(--text)] leading-tight mt-0.5">
-            Nationwide
-          </div>
+
+        {/* Bottom hairline */}
+        <div className="h-px mx-3" style={{ background: "linear-gradient(90deg, transparent, rgba(95,217,154,0.28), transparent)" }} />
+        <div className="px-4 py-2 flex items-center justify-between">
+          <span className="font-mono-tight text-[9px] text-faint" style={{ letterSpacing: "0.2em" }}>
+            48 STATES · CONTIGUOUS
+          </span>
+          <span className="flex items-center gap-1.5 font-mono-tight text-[9px] text-acc-soft" style={{ letterSpacing: "0.2em" }}>
+            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: "var(--acc)", boxShadow: "0 0 8px var(--acc)" }} />
+            LIVE
+          </span>
         </div>
       </div>
       <style>{`
