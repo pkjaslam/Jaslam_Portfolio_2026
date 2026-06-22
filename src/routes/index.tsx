@@ -230,7 +230,8 @@ function BootSplash({ done }: { done: boolean }) {
         loop
         playsInline
         preload="auto"
-        poster={jaslamHero.url}
+        style={{ /* poster removed; first frame fills */ }}
+        // eslint-disable-next-line
         style={{
           position: "absolute",
           inset: 0,
