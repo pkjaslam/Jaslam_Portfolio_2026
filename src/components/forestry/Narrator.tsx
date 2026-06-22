@@ -77,7 +77,7 @@ export function Narrator() {
     try {
       const stored = localStorage.getItem(ENABLED_KEY);
       if (stored !== null) setEnabled(stored === "1");
-      const p = localStorage.getItem(PLAYED_KEY);
+      const p = sessionStorage.getItem(PLAYED_KEY);
       if (p) playedRef.current = new Set(JSON.parse(p));
     } catch { /* noop */ }
   }, []);
