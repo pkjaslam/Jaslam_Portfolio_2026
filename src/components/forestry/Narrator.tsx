@@ -146,11 +146,25 @@ export function Narrator() {
     return p;
   };
 
-  // Prefetch every clip in PARALLEL so any section is ready instantly.
+  // Prefetch every clip in PARALLEL so any section/route is ready instantly.
   useEffect(() => {
     if (!enabled) return;
     SCRIPTS.forEach((s) => { fetchClip(s).catch(() => {}); });
+    Object.values(ROUTE_SCRIPTS).forEach((s) => { fetchClip(s).catch(() => {}); });
   }, [enabled]);
+
+  // Per-route narration: play on arrival (and when pathname changes).
+  useEffect(() => {
+    if (!enabled) return;
+    const script = ROUTE_SCRIPTS[pathname];
+    if (!script) return;
+    if (playedRef.current.has(script.id)) return;
+    // Small delay so route transition settles.
+    const t = setTimeout(() => { if (!playedRef.current.has(script.id)) play(script); }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, pathname]);
+
 
   const stopCurrent = (immediate = false) => {
     const a = audioRef.current;
