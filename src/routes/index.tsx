@@ -87,44 +87,99 @@ function Portfolio() {
 
   return (
     <div className="relative min-h-screen text-[var(--text)]">
+      <PageAtmosphere progress={progress} />
       <BootSplash done={booted} />
       <TopNav scrolled={scrolled} progress={progress} goto={goto} />
       <Hero goto={goto} />
-      <SceneDivider label="01 / APPROACH" />
+      <SceneDivider label="01 / APPROACH" mood="forest" />
       <CinematicScene camera="settle" intensity={1}>
         <Approach />
       </CinematicScene>
-      <SceneDivider label="02 / EXPERIENCE" />
+      <SceneDivider label="02 / EXPERIENCE" mood="overlay" />
       <CinematicScene camera="rise" intensity={1}>
         <Experience />
       </CinematicScene>
-      <SceneDivider label="03 / FUNDING" />
+      <SceneDivider label="03 / FUNDING" mood="maps" />
       <CinematicScene camera="drift" intensity={1}>
         <Grants />
       </CinematicScene>
-      <SceneDivider label="04 / EDUCATION" />
+      <SceneDivider label="04 / EDUCATION" mood="data" />
       <CinematicScene camera="settle" intensity={0.8}>
         <Education />
       </CinematicScene>
-      <SceneDivider label="05 / PUBLICATIONS" />
+      <SceneDivider label="05 / PUBLICATIONS" mood="data" />
       <CinematicScene camera="rise" intensity={0.9}>
         <Publications />
       </CinematicScene>
-      <SceneDivider label="06 / HONORS" />
+      <SceneDivider label="06 / HONORS" mood="overlay" />
       <CinematicScene camera="drift" intensity={0.8}>
         <Awards />
       </CinematicScene>
-      <SceneDivider label="07 / CREDENTIALS" />
+      <SceneDivider label="07 / CREDENTIALS" mood="overlay" />
       <CinematicScene camera="settle" intensity={0.7}>
         <Certifications />
       </CinematicScene>
-      <SceneDivider label="08 / CONTACT" />
+      <SceneDivider label="08 / CONTACT" mood="forest" />
       <CinematicScene camera="zoom" intensity={1}>
         <Contact />
       </CinematicScene>
       <SiteFooter />
       <Narrator />
-      <AmbientAudio />
+    </div>
+  );
+}
+
+/* ---------------- Page atmosphere ----------------
+ * A single fixed background that morphs as you scroll: forest → overlays →
+ * maps → data → back to forest. Each "mood" is a stacked gradient layer that
+ * fades in/out based on its scroll-band weight.
+ */
+function PageAtmosphere({ progress }: { progress: number }) {
+  // weights peak at: forest 0.0, overlay 0.28, maps 0.55, data 0.78, forest 1.0
+  const peaks = [0.0, 0.28, 0.55, 0.78, 1.0];
+  const w = peaks.map((c) => {
+    const d = Math.abs(progress - c);
+    return Math.max(0, 1 - d / 0.32);
+  });
+  const total = w.reduce((a, b) => a + b, 0) || 1;
+  const [wf, wo, wm, wd, wf2] = w.map((x) => x / total);
+  const moods: { bg: string; o: number }[] = [
+    { o: wf, bg: "radial-gradient(60% 50% at 50% 30%, rgba(20,55,38,0.55), transparent 70%), linear-gradient(180deg,#060b08, #0a1410)" },
+    { o: wo, bg: "radial-gradient(70% 60% at 20% 30%, rgba(95,217,154,0.10), transparent 70%), radial-gradient(60% 50% at 80% 70%, rgba(230,178,102,0.06), transparent 70%), linear-gradient(180deg,#070d09,#08120d)" },
+    { o: wm, bg: "linear-gradient(180deg,#06100b,#091812), radial-gradient(80% 60% at 50% 50%, rgba(95,217,154,0.08), transparent 70%)" },
+    { o: wd, bg: "linear-gradient(180deg,#040907,#080f0b), radial-gradient(60% 50% at 80% 20%, rgba(159,240,192,0.06), transparent 70%)" },
+    { o: wf2, bg: "radial-gradient(60% 50% at 50% 70%, rgba(20,55,38,0.55), transparent 70%), linear-gradient(180deg,#060b08, #0a1410)" },
+  ];
+  return (
+    <div aria-hidden className="fixed inset-0 pointer-events-none z-[0]">
+      {moods.map((m, i) => (
+        <div
+          key={i}
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{ background: m.bg, opacity: m.o }}
+        />
+      ))}
+      {/* mood-specific texture layer for maps */}
+      <div
+        className="absolute inset-0 mix-blend-screen"
+        style={{
+          backgroundImage: `url(${topoContours})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: w[2] * 0.18,
+          transition: "opacity .7s",
+        }}
+      />
+      {/* data grid */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "repeating-linear-gradient(90deg, transparent 0 84px, rgba(95,217,154,0.05) 84px 85px), repeating-linear-gradient(0deg, transparent 0 84px, rgba(95,217,154,0.05) 84px 85px)",
+          opacity: w[3] * 0.6,
+          transition: "opacity .7s",
+        }}
+      />
     </div>
   );
 }
