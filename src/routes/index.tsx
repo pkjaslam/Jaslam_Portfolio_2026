@@ -89,7 +89,7 @@ function Portfolio() {
     <div className="relative min-h-screen text-[var(--text)]">
       <PageAtmosphere progress={progress} />
       <BootSplash done={booted} />
-      <TopNav scrolled={scrolled} progress={progress} goto={goto} />
+      {/* Global nav lives in __root.tsx (SiteNav) */}
       <Hero goto={goto} />
       <SceneDivider label="01 / APPROACH" mood="forest" />
       <CinematicScene camera="settle" intensity={1}>
