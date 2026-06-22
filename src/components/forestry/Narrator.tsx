@@ -58,9 +58,10 @@ const SCRIPTS: NarrationScript[] = [
   },
 ];
 
-const PLAYED_KEY = "narrator:played:v3";
+// Use sessionStorage so narration plays once per visit (not silenced forever after first load).
+const PLAYED_KEY = "narrator:played:v4";
 const ENABLED_KEY = "narrator:enabled";
-const VOICE = "sage";
+const VOICE = "ash"; // warm, lower-register male
 
 export function Narrator() {
   const [enabled, setEnabled] = useState(true);
