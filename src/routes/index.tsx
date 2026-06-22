@@ -123,8 +123,6 @@ function Portfolio() {
       <CinematicScene camera="zoom" intensity={1}>
         <Contact />
       </CinematicScene>
-      <SiteFooter />
-      <Narrator />
     </div>
   );
 }
