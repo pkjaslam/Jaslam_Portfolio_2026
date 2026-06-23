@@ -149,11 +149,12 @@ export function Narrator() {
     return p;
   };
 
-  // Prefetch every clip in PARALLEL so any section/route is ready instantly.
+  // Warm only the local hero recording. Generating every TTS clip on page load can exhaust credits
+  // before the visitor reaches the section, which made narration feel random/unreliable.
   useEffect(() => {
     if (!enabled) return;
-    SCRIPTS.forEach((s) => { fetchClip(s).catch(() => {}); });
-    Object.values(ROUTE_SCRIPTS).forEach((s) => { fetchClip(s).catch(() => {}); });
+    const hero = SCRIPTS.find((s) => s.id === "hero");
+    if (hero) fetchClip(hero).catch(() => {});
   }, [enabled]);
 
   // Per-route narration: play on arrival (and when pathname changes).
@@ -219,11 +220,18 @@ export function Narrator() {
       audio.volume = 0;
       audio.onended = () => {
         playedRef.current.add(script.id);
-        try { sessionStorage.setItem(PLAYED_KEY, JSON.stringify([...playedRef.current])); } catch { /* noop */ }
         currentRef.current = null;
         setActiveId(null);
       };
-      await audio.play().catch(() => { /* autoplay blocked */ });
+      try {
+        await audio.play();
+      } catch {
+        // Browser autoplay policy blocked playback. Do not mark it played or leave the
+        // narrator active; the hero effect will retry on the next user gesture.
+        currentRef.current = null;
+        setActiveId(null);
+        return;
+      }
       const start = performance.now();
       const fadeIn = () => {
         const t = Math.min(1, (performance.now() - start) / 280);
