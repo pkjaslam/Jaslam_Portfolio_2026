@@ -168,7 +168,7 @@ export function Narrator() {
     const t = setTimeout(() => { if (!playedRef.current.has(script.id)) play(script); }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, pathname]);
+  }, [enabled, pathname, activeId]);
 
 
   const stopCurrent = (immediate = false) => {
