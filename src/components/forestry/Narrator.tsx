@@ -201,10 +201,11 @@ export function Narrator() {
     fadeRafRef.current = requestAnimationFrame(step);
   };
 
-  const play = async (script: NarrationScript) => {
-    if (!enabled) return;
-    if (playedRef.current.has(script.id)) return;
-    if (currentRef.current === script.id) return;
+  const play = async (script: NarrationScript, options: { interrupt?: boolean } = {}) => {
+    if (!enabled) return false;
+    if (playedRef.current.has(script.id)) return false;
+    if (currentRef.current === script.id) return false;
+    if (currentRef.current && !options.interrupt) return false;
 
     stopCurrent(true);
     currentRef.current = script.id;
@@ -230,7 +231,7 @@ export function Narrator() {
         // narrator active; the hero effect will retry on the next user gesture.
         currentRef.current = null;
         setActiveId(null);
-        return;
+        return false;
       }
       const start = performance.now();
       const fadeIn = () => {
@@ -239,9 +240,11 @@ export function Narrator() {
         if (t < 1) requestAnimationFrame(fadeIn);
       };
       requestAnimationFrame(fadeIn);
+      return true;
     } catch {
       currentRef.current = null;
       setActiveId(null);
+      return false;
     }
   };
 
@@ -253,12 +256,15 @@ export function Narrator() {
     if (playedRef.current.has(hero.id)) return;
 
     let cancelled = false;
-    const tryPlay = () => { if (!cancelled && !playedRef.current.has(hero.id)) play(hero); };
+    const tryPlay = () => {
+      if (cancelled || playedRef.current.has(hero.id)) return Promise.resolve(false);
+      return play(hero, { interrupt: true });
+    };
 
-    const t = setTimeout(tryPlay, 2400);
+    const t = setTimeout(() => { void tryPlay(); }, 2400);
 
     // First user gesture unlocks autoplay — retry then.
-    const onGesture = () => { tryPlay(); cleanup(); };
+    const onGesture = () => { void tryPlay().then((started) => { if (started) cleanup(); }); };
     const cleanup = () => {
       window.removeEventListener("pointerdown", onGesture);
       window.removeEventListener("keydown", onGesture);
