@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import jaslamVoiceAsset from "@/assets/jaslam-voice-reference.mp3.asset.json";
 
 /**
  * Cinematic narration system.
