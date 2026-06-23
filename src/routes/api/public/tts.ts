@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/public/tts")({
             voice: body.voice || "ash",
             speed: 0.94,
             instructions:
-              "Voice: a calm, warm, lower-register man in his early thirties — soft, intimate, close-mic feel. Tone: thoughtful, grounded, audience-friendly; like a researcher quietly sharing his world with a friend. Pacing: relaxed, unhurried, gentle pauses at commas and full stops. Diction: smooth, rounded, no hard consonants, never theatrical. Mood: cinematic warmth and quiet confidence — narrating a documentary about a forest at dawn.",
+              "Voice: a calm, warm, lower-register man in his early thirties — soft, intimate, close-mic feel. Tone reference: friendly JP-style portfolio welcome, natural South Asian English warmth, relaxed and real, as if personally saying thank you for visiting. Pacing: unhurried but conversational, gentle pauses, smooth rounded diction, never theatrical or announcer-like. Mood: cinematic warmth, quiet confidence, and genuine excitement about AI, machine learning, forestry, projects, and publications.",
             response_format: "mp3",
             stream_format: "audio",
           }),

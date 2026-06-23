@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
+import jaslamVoiceAsset from "@/assets/jaslam-voice-reference.mp3.asset.json";
 
 /**
  * Cinematic narration system.
@@ -14,6 +15,7 @@ export type NarrationScript = {
   selector: string; // element id (without #) or "__hero__"
   text: string;
   subtitle?: string;
+  audioUrl?: string;
 };
 
 const SCRIPTS: NarrationScript[] = [
@@ -21,8 +23,9 @@ const SCRIPTS: NarrationScript[] = [
     id: "hero",
     selector: "__hero__",
     text:
-      "Hi, I'm Jaslam Poolakkal — most people call me JP. I work where forests, data, and artificial intelligence meet. Take your time. I'm glad you're here.",
+      "Hey hi all, this is Jaslam Poolakkal — JP. Thank you for visiting my portfolio. Here we talk about artificial intelligence, machine learning, and forestry. Let's explore my projects, my publications, and the work behind them. I'm excited you're here, and excited to work with you all.",
     subtitle: "Hi, I'm Jaslam — JP. Welcome.",
+    audioUrl: jaslamVoiceAsset.url,
   },
   {
     id: "approach",
@@ -99,8 +102,6 @@ const ROUTE_SCRIPTS: Record<string, NarrationScript> = {
   },
 };
 
-// Use sessionStorage so narration plays once per visit (not silenced forever after first load).
-const PLAYED_KEY = "narrator:played:v5";
 const ENABLED_KEY = "narrator:enabled";
 const VOICE = "ash"; // warm, lower-register male
 
@@ -112,6 +113,7 @@ export function Narrator() {
   const fadeRafRef = useRef<number>(0);
   const playedRef = useRef<Set<string>>(new Set());
   const currentRef = useRef<string | null>(null);
+  const heroIntroducedRef = useRef(false);
   const cacheRef = useRef<Map<string, string>>(new Map());
   const cachePromisesRef = useRef<Map<string, Promise<string>>>(new Map());
 
@@ -119,14 +121,16 @@ export function Narrator() {
     try {
       const stored = localStorage.getItem(ENABLED_KEY);
       if (stored !== null) setEnabled(stored === "1");
-      const p = sessionStorage.getItem(PLAYED_KEY);
-      if (p) playedRef.current = new Set(JSON.parse(p));
     } catch { /* noop */ }
   }, []);
 
   const fetchClip = (s: NarrationScript): Promise<string> => {
     const cached = cacheRef.current.get(s.id);
     if (cached) return Promise.resolve(cached);
+    if (s.audioUrl) {
+      cacheRef.current.set(s.id, s.audioUrl);
+      return Promise.resolve(s.audioUrl);
+    }
     const inflight = cachePromisesRef.current.get(s.id);
     if (inflight) return inflight;
     const p = (async () => {
@@ -146,11 +150,12 @@ export function Narrator() {
     return p;
   };
 
-  // Prefetch every clip in PARALLEL so any section/route is ready instantly.
+  // Warm only the local hero recording. Generating every TTS clip on page load can exhaust credits
+  // before the visitor reaches the section, which made narration feel random/unreliable.
   useEffect(() => {
     if (!enabled) return;
-    SCRIPTS.forEach((s) => { fetchClip(s).catch(() => {}); });
-    Object.values(ROUTE_SCRIPTS).forEach((s) => { fetchClip(s).catch(() => {}); });
+    const hero = SCRIPTS.find((s) => s.id === "hero");
+    if (hero) fetchClip(hero).catch(() => {});
   }, [enabled]);
 
   // Per-route narration: play on arrival (and when pathname changes).
@@ -163,7 +168,7 @@ export function Narrator() {
     const t = setTimeout(() => { if (!playedRef.current.has(script.id)) play(script); }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, pathname]);
+  }, [enabled, pathname, activeId]);
 
 
   const stopCurrent = (immediate = false) => {
@@ -197,10 +202,11 @@ export function Narrator() {
     fadeRafRef.current = requestAnimationFrame(step);
   };
 
-  const play = async (script: NarrationScript) => {
-    if (!enabled) return;
-    if (playedRef.current.has(script.id)) return;
-    if (currentRef.current === script.id) return;
+  const play = async (script: NarrationScript, options: { interrupt?: boolean } = {}) => {
+    if (!enabled) return false;
+    if (playedRef.current.has(script.id)) return false;
+    if (currentRef.current === script.id) return false;
+    if (currentRef.current && !options.interrupt) return false;
 
     stopCurrent(true);
     currentRef.current = script.id;
@@ -208,7 +214,7 @@ export function Narrator() {
 
     try {
       const url = await fetchClip(script);
-      if (currentRef.current !== script.id) return;
+      if (currentRef.current !== script.id) return false;
       const audio = audioRef.current || new Audio();
       audioRef.current = audio;
       audio.src = url;
@@ -216,11 +222,19 @@ export function Narrator() {
       audio.volume = 0;
       audio.onended = () => {
         playedRef.current.add(script.id);
-        try { sessionStorage.setItem(PLAYED_KEY, JSON.stringify([...playedRef.current])); } catch { /* noop */ }
+        if (script.id === "hero") heroIntroducedRef.current = true;
         currentRef.current = null;
         setActiveId(null);
       };
-      await audio.play().catch(() => { /* autoplay blocked */ });
+      try {
+        await audio.play();
+      } catch {
+        // Browser autoplay policy blocked playback. Do not mark it played or leave the
+        // narrator active; the hero effect will retry on the next user gesture.
+        currentRef.current = null;
+        setActiveId(null);
+        return false;
+      }
       const start = performance.now();
       const fadeIn = () => {
         const t = Math.min(1, (performance.now() - start) / 280);
@@ -228,9 +242,11 @@ export function Narrator() {
         if (t < 1) requestAnimationFrame(fadeIn);
       };
       requestAnimationFrame(fadeIn);
+      return true;
     } catch {
       currentRef.current = null;
       setActiveId(null);
+      return false;
     }
   };
 
@@ -242,12 +258,15 @@ export function Narrator() {
     if (playedRef.current.has(hero.id)) return;
 
     let cancelled = false;
-    const tryPlay = () => { if (!cancelled && !playedRef.current.has(hero.id)) play(hero); };
+    const tryPlay = () => {
+      if (cancelled || playedRef.current.has(hero.id)) return Promise.resolve(false);
+      return play(hero, { interrupt: true });
+    };
 
-    const t = setTimeout(tryPlay, 2400);
+    const t = setTimeout(() => { void tryPlay(); }, 2400);
 
     // First user gesture unlocks autoplay — retry then.
-    const onGesture = () => { tryPlay(); cleanup(); };
+    const onGesture = () => { void tryPlay().then((started) => { if (started) cleanup(); }); };
     const cleanup = () => {
       window.removeEventListener("pointerdown", onGesture);
       window.removeEventListener("keydown", onGesture);
@@ -266,6 +285,7 @@ export function Narrator() {
   // Intersection observer — fire AS SOON AS section enters viewport meaningfully.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (pathname === "/" && !heroIntroducedRef.current) return;
     const els: { script: NarrationScript; el: Element }[] = [];
     SCRIPTS.forEach((s) => {
       if (s.selector === "__hero__") return;
@@ -297,7 +317,7 @@ export function Narrator() {
     );
     els.forEach(({ el }) => io.observe(el));
     return () => io.disconnect();
-  }, [enabled]);
+  }, [enabled, pathname]);
 
   useEffect(() => {
     return () => {
