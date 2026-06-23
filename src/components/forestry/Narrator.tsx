@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
+import jaslamVoiceAsset from "@/assets/jaslam-voice-reference.mp3.asset.json";
 
 /**
  * Cinematic narration system.
@@ -14,6 +15,7 @@ export type NarrationScript = {
   selector: string; // element id (without #) or "__hero__"
   text: string;
   subtitle?: string;
+  audioUrl?: string;
 };
 
 const SCRIPTS: NarrationScript[] = [
@@ -21,8 +23,9 @@ const SCRIPTS: NarrationScript[] = [
     id: "hero",
     selector: "__hero__",
     text:
-      "Hi, I'm Jaslam Poolakkal — most people call me JP. I work where forests, data, and artificial intelligence meet. Take your time. I'm glad you're here.",
+      "Hey hi all, this is Jaslam Poolakkal — JP. Thank you for visiting my portfolio. Here we talk about artificial intelligence, machine learning, and forestry. Let's explore my projects, my publications, and the work behind them. I'm excited you're here, and excited to work with you all.",
     subtitle: "Hi, I'm Jaslam — JP. Welcome.",
+    audioUrl: jaslamVoiceAsset.url,
   },
   {
     id: "approach",
@@ -99,8 +102,6 @@ const ROUTE_SCRIPTS: Record<string, NarrationScript> = {
   },
 };
 
-// Use sessionStorage so narration plays once per visit (not silenced forever after first load).
-const PLAYED_KEY = "narrator:played:v5";
 const ENABLED_KEY = "narrator:enabled";
 const VOICE = "ash"; // warm, lower-register male
 
@@ -119,14 +120,16 @@ export function Narrator() {
     try {
       const stored = localStorage.getItem(ENABLED_KEY);
       if (stored !== null) setEnabled(stored === "1");
-      const p = sessionStorage.getItem(PLAYED_KEY);
-      if (p) playedRef.current = new Set(JSON.parse(p));
     } catch { /* noop */ }
   }, []);
 
   const fetchClip = (s: NarrationScript): Promise<string> => {
     const cached = cacheRef.current.get(s.id);
     if (cached) return Promise.resolve(cached);
+    if (s.audioUrl) {
+      cacheRef.current.set(s.id, s.audioUrl);
+      return Promise.resolve(s.audioUrl);
+    }
     const inflight = cachePromisesRef.current.get(s.id);
     if (inflight) return inflight;
     const p = (async () => {
