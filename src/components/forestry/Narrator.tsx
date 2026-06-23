@@ -213,7 +213,7 @@ export function Narrator() {
 
     try {
       const url = await fetchClip(script);
-      if (currentRef.current !== script.id) return;
+      if (currentRef.current !== script.id) return false;
       const audio = audioRef.current || new Audio();
       audioRef.current = audio;
       audio.src = url;
