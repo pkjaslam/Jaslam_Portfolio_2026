@@ -24,7 +24,6 @@ const SCRIPTS: NarrationScript[] = [
     text:
       "Hey hi all, this is Jaslam Poolakkal — JP. Thank you for visiting my portfolio. Here we talk about artificial intelligence, machine learning, and forestry. Let's explore my projects, my publications, and the work behind them. I'm excited you're here, and excited to work with you all.",
     subtitle: "Hi, I'm Jaslam — JP. Welcome.",
-    audioUrl: jaslamVoiceAsset.url,
   },
   {
     id: "approach",
