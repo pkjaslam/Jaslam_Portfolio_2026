@@ -113,6 +113,7 @@ export function Narrator() {
   const fadeRafRef = useRef<number>(0);
   const playedRef = useRef<Set<string>>(new Set());
   const currentRef = useRef<string | null>(null);
+  const heroIntroducedRef = useRef(false);
   const cacheRef = useRef<Map<string, string>>(new Map());
   const cachePromisesRef = useRef<Map<string, Promise<string>>>(new Map());
 
@@ -221,6 +222,7 @@ export function Narrator() {
       audio.volume = 0;
       audio.onended = () => {
         playedRef.current.add(script.id);
+        if (script.id === "hero") heroIntroducedRef.current = true;
         currentRef.current = null;
         setActiveId(null);
       };
@@ -283,6 +285,7 @@ export function Narrator() {
   // Intersection observer — fire AS SOON AS section enters viewport meaningfully.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (pathname === "/" && !heroIntroducedRef.current) return;
     const els: { script: NarrationScript; el: Element }[] = [];
     SCRIPTS.forEach((s) => {
       if (s.selector === "__hero__") return;
@@ -314,7 +317,7 @@ export function Narrator() {
     );
     els.forEach(({ el }) => io.observe(el));
     return () => io.disconnect();
-  }, [enabled]);
+  }, [enabled, pathname]);
 
   useEffect(() => {
     return () => {
