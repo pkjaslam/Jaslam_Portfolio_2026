@@ -331,6 +331,25 @@ export function Narrator() {
     }
   };
 
+  const mostVisibleHomeScript = () => {
+    if (typeof window === "undefined") return null;
+    let best: NarrationScript | null = null;
+    let bestRatio = 0.18;
+    SCRIPTS.forEach((script) => {
+      if (script.selector === "__hero__" || playedRef.current.has(script.id)) return;
+      const el = document.getElementById(script.selector);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+      const ratio = Math.max(0, visible) / Math.max(1, Math.min(rect.height, window.innerHeight));
+      if (ratio > bestRatio) {
+        bestRatio = ratio;
+        best = script;
+      }
+    });
+    return best;
+  };
+
   // Hero narration once after enabling — wait for the splash to clear.
   // Also retry on first user gesture in case browser autoplay policy blocked the first attempt.
   useEffect(() => {
@@ -371,6 +390,41 @@ export function Narrator() {
     return () => { cancelled = true; clearTimeout(t); clearTimeout(openGate); cleanup(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
+
+  // Durable fallback: every real visitor action can start the correct narration directly.
+  // This avoids browser autoplay blocks and keeps the final thank-you narration reachable.
+  useEffect(() => {
+    if (!enabled) return;
+    const onGesture = () => {
+      if (currentRef.current) return;
+      const hero = SCRIPTS.find((s) => s.id === "hero")!;
+      if (pathname === "/" && !playedRef.current.has(hero.id)) {
+        void play(hero, { interrupt: true, preferBrowserSpeech: true, force: true });
+        return;
+      }
+      const routeScript = ROUTE_SCRIPTS[pathname];
+      if (routeScript && !playedRef.current.has(routeScript.id)) {
+        void play(routeScript, { interrupt: true, preferBrowserSpeech: true, force: true });
+        return;
+      }
+      if (pathname === "/" && heroGateOpen) {
+        const script = mostVisibleHomeScript();
+        if (script) void play(script, { interrupt: true, preferBrowserSpeech: true, force: true });
+      }
+    };
+
+    window.addEventListener("pointerdown", onGesture);
+    window.addEventListener("keydown", onGesture);
+    window.addEventListener("touchstart", onGesture, { passive: true });
+    window.addEventListener("scroll", onGesture, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
+      window.removeEventListener("touchstart", onGesture);
+      window.removeEventListener("scroll", onGesture);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, pathname, heroGateOpen]);
 
   // Intersection observer — fire AS SOON AS section enters viewport meaningfully.
   useEffect(() => {
@@ -438,8 +492,8 @@ export function Narrator() {
         type="button"
         onClick={toggleEnabled}
         aria-pressed={enabled}
-        aria-label={enabled ? "Mute narration" : "Enable narration"}
-        title={enabled ? "Mute narration" : "Enable narration"}
+        aria-label={enabled ? (activeId ? "Mute narration" : "Play narration") : "Enable narration"}
+        title={enabled ? (activeId ? "Mute narration" : "Play narration") : "Enable narration"}
         className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-full cursor-pointer transition-all hover:bg-[rgba(8,18,13,0.92)]"
         style={{
           background: "rgba(8,18,13,0.72)",
