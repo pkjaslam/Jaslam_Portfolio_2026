@@ -371,7 +371,8 @@ export function Narrator() {
 
     // First user gesture unlocks speech. Use browser speech immediately here because
     // fetching AI audio after the gesture can lose the browser's media permission window.
-    const onGesture = () => {
+    const onGesture = (event: Event) => {
+      if ((event.target as Element | null)?.closest?.('[data-narrator-control="true"]')) return;
       void play(hero, { interrupt: true, preferBrowserSpeech: true, force: true }).then((started) => {
         if (started) cleanup();
       });
@@ -395,7 +396,8 @@ export function Narrator() {
   // This avoids browser autoplay blocks and keeps the final thank-you narration reachable.
   useEffect(() => {
     if (!enabled) return;
-    const onGesture = () => {
+    const onGesture = (event: Event) => {
+      if ((event.target as Element | null)?.closest?.('[data-narrator-control="true"]')) return;
       if (currentRef.current) return;
       const hero = SCRIPTS.find((s) => s.id === "hero")!;
       if (pathname === "/" && !playedRef.current.has(hero.id)) {
@@ -500,6 +502,7 @@ export function Narrator() {
       <button
         type="button"
         onClick={toggleEnabled}
+        data-narrator-control="true"
         aria-pressed={enabled}
         aria-label={enabled ? (activeId ? "Mute narration" : "Play narration") : "Enable narration"}
         title={enabled ? (activeId ? "Mute narration" : "Play narration") : "Enable narration"}
