@@ -3,7 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 
 /**
  * Cinematic narration system.
- *  - Prefetches every clip in parallel as soon as enabled, so playback starts instantly.
+ *  - Uses premium AI speech when available, then falls back to browser speech if credits/autoplay fail.
  *  - Triggers on first intersection (no long dwell) when the section is in view.
  *  - Fades old narration; never overlaps. One narration per section per session.
  *  - Mute persisted in localStorage.
@@ -103,17 +103,42 @@ const ROUTE_SCRIPTS: Record<string, NarrationScript> = {
 const ENABLED_KEY = "narrator:enabled";
 const VOICE = "ash"; // warm, lower-register male
 
+const FALLBACK_VOICE_HINTS = [
+  "ravi",
+  "google uk english male",
+  "microsoft david",
+  "microsoft mark",
+  "alex",
+  "daniel",
+  "male",
+  "google us english",
+];
+
+function getBrowserNarrationVoice() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  return (
+    FALLBACK_VOICE_HINTS.map((hint) =>
+      voices.find((voice) => voice.name.toLowerCase().includes(hint) && voice.lang.toLowerCase().startsWith("en"))
+    ).find(Boolean) || voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) || null
+  );
+}
+
 export function Narrator() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [enabled, setEnabled] = useState(true);
+  const [heroGateOpen, setHeroGateOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechCancelingRef = useRef(false);
   const fadeRafRef = useRef<number>(0);
   const playedRef = useRef<Set<string>>(new Set());
   const currentRef = useRef<string | null>(null);
   const heroIntroducedRef = useRef(false);
   const cacheRef = useRef<Map<string, string>>(new Map());
   const cachePromisesRef = useRef<Map<string, Promise<string>>>(new Map());
+  const ttsUnavailableRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -123,6 +148,7 @@ export function Narrator() {
   }, []);
 
   const fetchClip = (s: NarrationScript): Promise<string> => {
+    if (ttsUnavailableRef.current) return Promise.reject(new Error("TTS unavailable"));
     const cached = cacheRef.current.get(s.id);
     if (cached) return Promise.resolve(cached);
     if (s.audioUrl) {
@@ -137,7 +163,10 @@ export function Narrator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: s.text, voice: VOICE }),
       });
-      if (!res.ok) throw new Error(`TTS ${res.status}`);
+      if (!res.ok) {
+        ttsUnavailableRef.current = true;
+        throw new Error(`TTS ${res.status}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       cacheRef.current.set(s.id, url);
@@ -147,14 +176,6 @@ export function Narrator() {
     p.catch(() => cachePromisesRef.current.delete(s.id));
     return p;
   };
-
-  // Warm only the local hero recording. Generating every TTS clip on page load can exhaust credits
-  // before the visitor reaches the section, which made narration feel random/unreliable.
-  useEffect(() => {
-    if (!enabled) return;
-    const hero = SCRIPTS.find((s) => s.id === "hero");
-    if (hero) fetchClip(hero).catch(() => {});
-  }, [enabled]);
 
   // Per-route narration: play on arrival (and when pathname changes).
   useEffect(() => {
@@ -169,7 +190,72 @@ export function Narrator() {
   }, [enabled, pathname, activeId]);
 
 
+  const markComplete = (script: NarrationScript) => {
+    playedRef.current.add(script.id);
+    if (script.id === "hero") {
+      heroIntroducedRef.current = true;
+      setHeroGateOpen(true);
+    }
+    currentRef.current = null;
+    setActiveId(null);
+  };
+
+  const resetCurrent = (script?: NarrationScript) => {
+    if (!script || currentRef.current === script.id) {
+      currentRef.current = null;
+      setActiveId(null);
+    }
+  };
+
+  const stopBrowserSpeech = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    speechCancelingRef.current = true;
+    window.speechSynthesis.cancel();
+    speechRef.current = null;
+    window.setTimeout(() => {
+      speechCancelingRef.current = false;
+    }, 0);
+  };
+
+  const playBrowserSpeech = (script: NarrationScript) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
+
+    stopBrowserSpeech();
+    const utterance = new SpeechSynthesisUtterance(script.text);
+    const voice = getBrowserNarrationVoice();
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang || "en-US";
+    utterance.rate = 0.88;
+    utterance.pitch = 0.86;
+    utterance.volume = 0.94;
+    speechRef.current = utterance;
+    currentRef.current = script.id;
+    setActiveId(script.id);
+
+    utterance.onend = () => {
+      if (speechRef.current !== utterance) return;
+      speechRef.current = null;
+      markComplete(script);
+    };
+    utterance.onerror = () => {
+      if (speechCancelingRef.current || speechRef.current !== utterance) return;
+      speechRef.current = null;
+      resetCurrent(script);
+    };
+
+    try {
+      window.speechSynthesis.speak(utterance);
+      window.speechSynthesis.resume();
+      return true;
+    } catch {
+      speechRef.current = null;
+      resetCurrent(script);
+      return false;
+    }
+  };
+
   const stopCurrent = (immediate = false) => {
+    stopBrowserSpeech();
     const a = audioRef.current;
     if (!a) {
       currentRef.current = null;
@@ -200,13 +286,15 @@ export function Narrator() {
     fadeRafRef.current = requestAnimationFrame(step);
   };
 
-  const play = async (script: NarrationScript, options: { interrupt?: boolean } = {}) => {
-    if (!enabled) return false;
+  const play = async (script: NarrationScript, options: { interrupt?: boolean; preferBrowserSpeech?: boolean; force?: boolean } = {}) => {
+    if (!enabled && !options.force) return false;
     if (playedRef.current.has(script.id)) return false;
     if (currentRef.current === script.id) return false;
     if (currentRef.current && !options.interrupt) return false;
 
     stopCurrent(true);
+    if (options.preferBrowserSpeech) return playBrowserSpeech(script);
+
     currentRef.current = script.id;
     setActiveId(script.id);
 
@@ -219,19 +307,15 @@ export function Narrator() {
       audio.preload = "auto";
       audio.volume = 0;
       audio.onended = () => {
-        playedRef.current.add(script.id);
-        if (script.id === "hero") heroIntroducedRef.current = true;
-        currentRef.current = null;
-        setActiveId(null);
+        markComplete(script);
       };
       try {
         await audio.play();
       } catch {
         // Browser autoplay policy blocked playback. Do not mark it played or leave the
-        // narrator active; the hero effect will retry on the next user gesture.
-        currentRef.current = null;
-        setActiveId(null);
-        return false;
+        // narrator active; fall back to browser speech and retry hero on the next gesture.
+        resetCurrent(script);
+        return playBrowserSpeech(script);
       }
       const start = performance.now();
       const fadeIn = () => {
@@ -242,10 +326,28 @@ export function Narrator() {
       requestAnimationFrame(fadeIn);
       return true;
     } catch {
-      currentRef.current = null;
-      setActiveId(null);
-      return false;
+      resetCurrent(script);
+      return playBrowserSpeech(script);
     }
+  };
+
+  const mostVisibleHomeScript = () => {
+    if (typeof window === "undefined") return null;
+    let best: NarrationScript | null = null;
+    let bestRatio = 0.18;
+    SCRIPTS.forEach((script) => {
+      if (script.selector === "__hero__" || playedRef.current.has(script.id)) return;
+      const el = document.getElementById(script.selector);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+      const ratio = Math.max(0, visible) / Math.max(1, Math.min(rect.height, window.innerHeight));
+      if (ratio > bestRatio) {
+        bestRatio = ratio;
+        best = script;
+      }
+    });
+    return best;
   };
 
   // Hero narration once after enabling — wait for the splash to clear.
@@ -261,29 +363,75 @@ export function Narrator() {
       return play(hero, { interrupt: true });
     };
 
-    const t = setTimeout(() => { void tryPlay(); }, 2400);
+    const t = setTimeout(() => { void tryPlay(); }, 3600);
+    const openGate = setTimeout(() => {
+      heroIntroducedRef.current = true;
+      setHeroGateOpen(true);
+    }, 9000);
 
-    // First user gesture unlocks autoplay — retry then.
-    const onGesture = () => { void tryPlay().then((started) => { if (started) cleanup(); }); };
+    // First user gesture unlocks speech. Use browser speech immediately here because
+    // fetching AI audio after the gesture can lose the browser's media permission window.
+    const onGesture = (event: Event) => {
+      if ((event.target as Element | null)?.closest?.('[data-narrator-control="true"]')) return;
+      void play(hero, { interrupt: true, preferBrowserSpeech: true, force: true }).then((started) => {
+        if (started) cleanup();
+      });
+    };
     const cleanup = () => {
       window.removeEventListener("pointerdown", onGesture);
       window.removeEventListener("keydown", onGesture);
       window.removeEventListener("touchstart", onGesture);
       window.removeEventListener("scroll", onGesture);
     };
-    window.addEventListener("pointerdown", onGesture, { once: true });
-    window.addEventListener("keydown", onGesture, { once: true });
-    window.addEventListener("touchstart", onGesture, { once: true });
-    window.addEventListener("scroll", onGesture, { once: true, passive: true });
+    window.addEventListener("pointerdown", onGesture);
+    window.addEventListener("keydown", onGesture);
+    window.addEventListener("touchstart", onGesture, { passive: true });
+    window.addEventListener("scroll", onGesture, { passive: true });
 
-    return () => { cancelled = true; clearTimeout(t); cleanup(); };
+    return () => { cancelled = true; clearTimeout(t); clearTimeout(openGate); cleanup(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
+
+  // Durable fallback: every real visitor action can start the correct narration directly.
+  // This avoids browser autoplay blocks and keeps the final thank-you narration reachable.
+  useEffect(() => {
+    if (!enabled) return;
+    const onGesture = (event: Event) => {
+      if ((event.target as Element | null)?.closest?.('[data-narrator-control="true"]')) return;
+      if (currentRef.current) return;
+      const hero = SCRIPTS.find((s) => s.id === "hero")!;
+      if (pathname === "/" && !playedRef.current.has(hero.id)) {
+        void play(hero, { interrupt: true, preferBrowserSpeech: true, force: true });
+        return;
+      }
+      const routeScript = ROUTE_SCRIPTS[pathname];
+      if (routeScript && !playedRef.current.has(routeScript.id)) {
+        void play(routeScript, { interrupt: true, preferBrowserSpeech: true, force: true });
+        return;
+      }
+      if (pathname === "/" && heroGateOpen) {
+        const script = mostVisibleHomeScript();
+        if (script) void play(script, { interrupt: true, preferBrowserSpeech: true, force: true });
+      }
+    };
+
+    window.addEventListener("pointerdown", onGesture);
+    window.addEventListener("keydown", onGesture);
+    window.addEventListener("touchstart", onGesture, { passive: true });
+    window.addEventListener("scroll", onGesture, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
+      window.removeEventListener("touchstart", onGesture);
+      window.removeEventListener("scroll", onGesture);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, pathname, heroGateOpen]);
 
   // Intersection observer — fire AS SOON AS section enters viewport meaningfully.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (pathname === "/" && !heroIntroducedRef.current) return;
+    if (pathname === "/" && !heroGateOpen) return;
     const els: { script: NarrationScript; el: Element }[] = [];
     SCRIPTS.forEach((s) => {
       if (s.selector === "__hero__") return;
@@ -315,22 +463,33 @@ export function Narrator() {
     );
     els.forEach(({ el }) => io.observe(el));
     return () => io.disconnect();
-  }, [enabled, pathname]);
+  }, [enabled, pathname, heroGateOpen]);
 
   useEffect(() => {
     return () => {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ""; }
+      stopBrowserSpeech();
       if (fadeRafRef.current) cancelAnimationFrame(fadeRafRef.current);
     };
   }, []);
 
   const toggleEnabled = () => {
-    setEnabled((v) => {
-      const next = !v;
-      try { localStorage.setItem(ENABLED_KEY, next ? "1" : "0"); } catch { /* noop */ }
-      if (!next) stopCurrent(false);
-      return next;
-    });
+    const hero = SCRIPTS.find((s) => s.id === "hero")!;
+    if (!enabled) {
+      setEnabled(true);
+      try { localStorage.setItem(ENABLED_KEY, "1"); } catch { /* noop */ }
+    }
+    if (activeId) return;
+    const routeScript = ROUTE_SCRIPTS[pathname];
+    const target =
+      pathname === "/" && !playedRef.current.has(hero.id)
+        ? hero
+        : routeScript && !playedRef.current.has(routeScript.id)
+          ? routeScript
+          : pathname === "/"
+            ? mostVisibleHomeScript()
+            : null;
+    if (target) void play(target, { interrupt: true, preferBrowserSpeech: true, force: true });
   };
 
   return (
@@ -338,9 +497,13 @@ export function Narrator() {
       <button
         type="button"
         onClick={toggleEnabled}
+        onPointerDown={(event) => event.stopPropagation()}
+        onTouchStart={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+        data-narrator-control="true"
         aria-pressed={enabled}
-        aria-label={enabled ? "Mute narration" : "Enable narration"}
-        title={enabled ? "Mute narration" : "Enable narration"}
+        aria-label={enabled ? (activeId ? "Mute narration" : "Play narration") : "Enable narration"}
+        title={enabled ? (activeId ? "Mute narration" : "Play narration") : "Enable narration"}
         className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-full cursor-pointer transition-all hover:bg-[rgba(8,18,13,0.92)]"
         style={{
           background: "rgba(8,18,13,0.72)",
@@ -354,7 +517,7 @@ export function Narrator() {
           className="font-mono-tight text-[10px] hidden sm:inline"
           style={{ color: "var(--acc-soft)", letterSpacing: "0.22em" }}
         >
-          {enabled ? (activeId ? "NARRATING" : "VOICE · ON") : "VOICE · OFF"}
+          {enabled ? (activeId ? "NARRATING" : "PLAY VOICE") : "VOICE · OFF"}
         </span>
       </button>
     </div>
