@@ -474,7 +474,16 @@ export function Narrator() {
   const toggleEnabled = () => {
     const hero = SCRIPTS.find((s) => s.id === "hero")!;
     if (enabled && !activeId) {
-      void play(hero, { interrupt: true, preferBrowserSpeech: true, force: true });
+      const routeScript = ROUTE_SCRIPTS[pathname];
+      const target =
+        pathname === "/" && !playedRef.current.has(hero.id)
+          ? hero
+          : routeScript && !playedRef.current.has(routeScript.id)
+            ? routeScript
+            : pathname === "/"
+              ? mostVisibleHomeScript()
+              : null;
+      if (target) void play(target, { interrupt: true, preferBrowserSpeech: true, force: true });
       return;
     }
     setEnabled((v) => {
