@@ -502,6 +502,9 @@ export function Narrator() {
       <button
         type="button"
         onClick={toggleEnabled}
+        onPointerDown={(event) => event.stopPropagation()}
+        onTouchStart={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
         data-narrator-control="true"
         aria-pressed={enabled}
         aria-label={enabled ? (activeId ? "Mute narration" : "Play narration") : "Enable narration"}
