@@ -475,7 +475,8 @@ export function Narrator() {
 
   const toggleEnabled = () => {
     const hero = SCRIPTS.find((s) => s.id === "hero")!;
-    if (enabled && !activeId) {
+    if (enabled) {
+      if (activeId) return;
       const routeScript = ROUTE_SCRIPTS[pathname];
       const target =
         pathname === "/" && !playedRef.current.has(hero.id)
