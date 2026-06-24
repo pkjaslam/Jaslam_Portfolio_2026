@@ -475,27 +475,21 @@ export function Narrator() {
 
   const toggleEnabled = () => {
     const hero = SCRIPTS.find((s) => s.id === "hero")!;
-    if (enabled) {
-      if (activeId) return;
-      const routeScript = ROUTE_SCRIPTS[pathname];
-      const target =
-        pathname === "/" && !playedRef.current.has(hero.id)
-          ? hero
-          : routeScript && !playedRef.current.has(routeScript.id)
-            ? routeScript
-            : pathname === "/"
-              ? mostVisibleHomeScript()
-              : null;
-      if (target) void play(target, { interrupt: true, preferBrowserSpeech: true, force: true });
-      return;
+    if (!enabled) {
+      setEnabled(true);
+      try { localStorage.setItem(ENABLED_KEY, "1"); } catch { /* noop */ }
     }
-    setEnabled((v) => {
-      const next = !v;
-      try { localStorage.setItem(ENABLED_KEY, next ? "1" : "0"); } catch { /* noop */ }
-      if (!next) stopCurrent(false);
-      else void play(hero, { interrupt: true, preferBrowserSpeech: true, force: true });
-      return next;
-    });
+    if (activeId) return;
+    const routeScript = ROUTE_SCRIPTS[pathname];
+    const target =
+      pathname === "/" && !playedRef.current.has(hero.id)
+        ? hero
+        : routeScript && !playedRef.current.has(routeScript.id)
+          ? routeScript
+          : pathname === "/"
+            ? mostVisibleHomeScript()
+            : null;
+    if (target) void play(target, { interrupt: true, preferBrowserSpeech: true, force: true });
   };
 
   return (
